@@ -192,7 +192,7 @@ export default function AutoDetectExpense({ onExpenseDetected }: Props) {
                               <label className="text-xs text-white/40 mb-1 block" htmlFor="edit-category">Category</label>
                               <select id="edit-category" value={editedCategory} onChange={(e) => setEditedCategory(e.target.value)} className="select-field text-sm">
                                 {CATEGORY_OPTIONS.map((c) => (
-                                  <option key={c} value={c}>{getCategoryIcon(c)} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
                                 ))}
                               </select>
                             </div>
@@ -212,7 +212,11 @@ export default function AutoDetectExpense({ onExpenseDetected }: Props) {
                           </div>
                           <div>
                             <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${getCategoryColor(parsed.suggestedCategory)}`}>
-                              {getCategoryIcon(parsed.suggestedCategory)} {parsed.suggestedCategory}
+                              {(() => {
+                                const Icon = getCategoryIcon(parsed.suggestedCategory);
+                                return <Icon className="w-3.5 h-3.5" />;
+                              })()}
+                              {parsed.suggestedCategory.charAt(0).toUpperCase() + parsed.suggestedCategory.slice(1)}
                             </div>
                             <div className="text-white/40 text-xs mt-1">Category</div>
                           </div>

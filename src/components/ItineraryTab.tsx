@@ -15,6 +15,11 @@ import {
   Sun,
   Sunset,
   Moon,
+  Utensils,
+  Car,
+  Building2,
+  Ticket,
+  Briefcase,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency, getDaysCount } from "@/lib/utils";
@@ -158,16 +163,21 @@ export default function ItineraryTab({ trip, user }: Props) {
         {itinerary.budgetBreakdown && (
           <div className="grid grid-cols-5 gap-3 mt-4">
             {Object.entries(itinerary.budgetBreakdown).map(([key, val]) => {
-              const icons: Record<string, string> = {
-                accommodation: "🏨",
-                food: "🍽️",
-                transport: "🚗",
-                activities: "🎯",
-                miscellaneous: "💼",
+              const icons: Record<string, any> = {
+                accommodation: Building2,
+                food: Utensils,
+                transport: Car,
+                activities: Ticket,
+                miscellaneous: Briefcase,
               };
               return (
-                <div key={key} className="glass-card p-3 text-center">
-                  <div className="text-lg mb-1">{icons[key] ?? "💰"}</div>
+                <div key={key} className="glass-card-hover p-3 text-center">
+                  <div className="flex justify-center mb-2 mt-1">
+                    {(() => {
+                      const Icon = icons[key] ?? Briefcase;
+                      return <Icon className="w-5 h-5 text-white/70" />;
+                    })()}
+                  </div>
                   <div className="text-brand-400 font-semibold text-sm">
                     {formatCurrency(val as number, trip.currency)}
                   </div>

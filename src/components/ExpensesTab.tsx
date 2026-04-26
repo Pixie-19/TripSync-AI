@@ -185,7 +185,12 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
               filterCategory === cat ? "border-brand-500/40 bg-brand-500/10" : "hover:border-white/20"
             }`}
           >
-            <div className="text-2xl mb-1">{getCategoryIcon(cat)}</div>
+            <div className="flex justify-center mb-1">
+              {(() => {
+                const Icon = getCategoryIcon(cat);
+                return <Icon className="w-6 h-6" />;
+              })()}
+            </div>
             <div className="text-xs font-medium capitalize">{cat}</div>
             <div className="text-xs text-white/50 mt-0.5">
               {formatCurrency(categoryTotals[cat])}
@@ -240,10 +245,13 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass-card p-4 flex items-center gap-4 group hover:border-white/20 transition-all"
+                className="glass-card-hover p-4 flex items-center gap-4 group transition-all"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${getCategoryColor(expense.category)}`}>
-                  {getCategoryIcon(expense.category)}
+                  {(() => {
+                    const Icon = getCategoryIcon(expense.category);
+                    return <Icon className="w-5 h-5" />;
+                  })()}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -340,7 +348,7 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                     >
                       {CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
-                          {getCategoryIcon(cat)} {cat}
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
                         </option>
                       ))}
                     </select>

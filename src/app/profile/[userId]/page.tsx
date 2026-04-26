@@ -188,7 +188,12 @@ export default function FriendProfilePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
                 <div key={cat} className={`flex items-center gap-3 p-3 rounded-xl ${getCategoryColor(cat).split(" ").filter(c => c.startsWith("bg")).join(" ")}`}>
-                  <span className="text-xl">{getCategoryIcon(cat)}</span>
+                  <span className="flex items-center justify-center">
+                    {(() => {
+                      const Icon = getCategoryIcon(cat);
+                      return <Icon className="w-5 h-5 text-current" />;
+                    })()}
+                  </span>
                   <div>
                     <div className="text-xs text-white/50 capitalize">{cat}</div>
                     <div className="font-semibold text-sm">{formatCurrency(total)}</div>
@@ -217,7 +222,10 @@ export default function FriendProfilePage() {
                   className="flex items-center gap-3 p-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors"
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${getCategoryColor(expense.category).split(" ").filter(c => c.startsWith("bg")).join(" ")}`}>
-                    {getCategoryIcon(expense.category)}
+                    {(() => {
+                      const Icon = getCategoryIcon(expense.category);
+                      return <Icon className="w-4 h-4" />;
+                    })()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">{expense.title}</div>

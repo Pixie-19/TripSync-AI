@@ -185,7 +185,13 @@ export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: 
               {categoryData.map((cat, i) => (
                 <div key={cat.name} className="flex items-center gap-2 text-sm">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                  <span className="text-white/60">{cat.icon} {cat.name}</span>
+                  <span className="text-white/60 flex items-center gap-1.5">
+                    {(() => {
+                      const Icon = cat.icon;
+                      return <Icon className="w-3.5 h-3.5" />;
+                    })()}
+                    {cat.name}
+                  </span>
                   <span className="ml-auto text-white/80 font-medium">{formatCurrency(cat.value)}</span>
                 </div>
               ))}

@@ -81,16 +81,18 @@ export function calculateSettlements(
   return result;
 }
 
-export function getCategoryIcon(category: string): string {
-  const icons: Record<string, string> = {
-    food: "🍽️",
-    transport: "🚗",
-    stay: "🏨",
-    activities: "🎯",
-    shopping: "🛍️",
-    other: "💰",
+import { Utensils, Car, Building2, Ticket, ShoppingBag, CircleDollarSign, LucideIcon } from "lucide-react";
+
+export function getCategoryIcon(category: string): LucideIcon {
+  const icons: Record<string, LucideIcon> = {
+    food: Utensils,
+    transport: Car,
+    stay: Building2,
+    activities: Ticket,
+    shopping: ShoppingBag,
+    other: CircleDollarSign,
   };
-  return icons[category] ?? "💰";
+  return icons[category] ?? CircleDollarSign;
 }
 
 export function getCategoryColor(category: string): string {

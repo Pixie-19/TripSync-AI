@@ -309,20 +309,23 @@ export default function TripPage() {
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 glass-card rounded-xl mb-6 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1.5 p-1.5 glass-card rounded-2xl mb-6 overflow-x-auto no-scrollbar scroll-x-snap shadow-inner border border-white/10 bg-dark-800/50">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               id={`tab-${tab.id}`}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap flex-1 justify-center ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap flex-1 justify-center relative touch-target ${
                 activeTab === tab.id
-                  ? "bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-lg"
-                  : "text-white/50 hover:text-white hover:bg-white/5"
+                  ? "bg-gradient-to-r from-brand-500 to-violet-600 text-white shadow-md shadow-brand-500/20"
+                  : "text-white/50 hover:text-white/90 hover:bg-white/5"
               }`}
             >
               {tab.icon}
               {tab.label}
+              {activeTab === tab.id && (
+                <motion.div layoutId="activeTabIndicator" className="absolute inset-0 rounded-xl ring-1 ring-white/20 pointer-events-none" />
+              )}
             </button>
           ))}
         </div>
