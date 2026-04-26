@@ -153,7 +153,7 @@ export default function CreateTripModal({ userId, onClose, onCreated }: Props) {
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <input
                       id="trip-destination"
-                      className="input-field pl-10"
+                      className="input-field !pl-10"
                       placeholder="e.g. Goa, India"
                       value={form.destination}
                       onChange={(e) => setForm((f) => ({ ...f, destination: e.target.value }))}
@@ -196,7 +196,7 @@ export default function CreateTripModal({ userId, onClose, onCreated }: Props) {
                       <input
                         id="trip-budget"
                         type="number"
-                        className="input-field pl-10"
+                        className="input-field !pl-10"
                         placeholder="50000"
                         value={form.budget}
                         onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))}

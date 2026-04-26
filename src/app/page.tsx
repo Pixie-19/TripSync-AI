@@ -392,18 +392,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/8 py-8">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-white/30 text-sm">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            <span>TripSync AI © 2025</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            Built with <Heart className="w-4 h-4 text-rose-500 fill-rose-500" /> for Hackathon
-          </div>
-        </div>
-      </footer>
+
     </main>
   );
 }

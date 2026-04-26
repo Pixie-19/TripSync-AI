@@ -315,7 +315,7 @@ export default function TripPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               id={`tab-${tab.id}`}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap flex-1 justify-center relative touch-target ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative touch-target flex-shrink-0 ${
                 activeTab === tab.id
                   ? "bg-gradient-to-r from-brand-500 to-violet-600 text-white shadow-md shadow-brand-500/20"
                   : "text-white/50 hover:text-white/90 hover:bg-white/5"

@@ -218,7 +218,7 @@ export default function AuthPage() {
                   id="auth-email"
                   type="email"
                   required
-                  className="input-field pl-10"
+                  className="input-field !pl-10"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -235,7 +235,7 @@ export default function AuthPage() {
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
-                  className="input-field pl-10 pr-10"
+                  className="input-field !pl-10 !pr-10"
                   placeholder={mode === "signup" ? "Min. 6 characters" : "Your password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
