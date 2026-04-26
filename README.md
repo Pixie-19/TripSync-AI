@@ -1,10 +1,55 @@
-# 🌌 TripSync AI — The Cinematic Group Travel Command Center
-### Plan together. Spend smarter. Settle instantly.
+# 🌌 TripSync AI — Plan Together. Spend Smarter. Settle Instantly.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![Mistral AI](https://img.shields.io/badge/AI-Mistral-orange?style=for-the-badge)](https://mistral.ai/)
 [![Supabase](https://img.shields.io/badge/Database-Supabase-emerald?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![Firebase](https://img.shields.io/badge/Auth-Firebase-yellow?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
+
+---
+
+## 🏗️ System Architecture & Data Flow
+
+```mermaid
+graph TD
+    %% Roles
+    User((User))
+    Admin((Trip Admin))
+
+    %% Frontend
+    subgraph Frontend [Next.js Command Center]
+        UI[Glassmorphism Dashboard]
+        RealtimeHook[Supabase Realtime Hook]
+        FinanceLib[Finance Engine /lib/finance]
+    end
+
+    %% Backend Services
+    subgraph Services [Cloud Ecosystem]
+        Firebase[Firebase Auth]
+        Mistral[Mistral AI Assistant]
+        SupabaseDB[(Supabase PostgreSQL)]
+    end
+
+    %% Data Flow
+    User -- Auth --> Firebase
+    User -- Interaction --> UI
+    UI -- Action --> FinanceLib
+    
+    %% Finance Engine Logic
+    FinanceLib -- "Add Expense" --> SupabaseDB
+    FinanceLib -- "Recalculate Balances" --> SupabaseDB
+    
+    %% AI Integration
+    SupabaseDB -- "Expense Audit" --> Mistral
+    Mistral -- "Budget Insights" --> UI
+    
+    %% Realtime Sync
+    SupabaseDB -- "Postgres Change" --> RealtimeHook
+    RealtimeHook -- "Live Update (Balances/Chat)" --> UI
+
+    %% Styling
+    classDef highlight fill:#00d2ff,stroke:#333,stroke-width:2px,color:#000;
+    class FinanceLib highlight;
+```
 
 ---
 
@@ -25,27 +70,19 @@ Unlike traditional travel apps, TripSync AI features a **"Fintech Command Center
 
 ### 🤖 AI Core (Powered by Mistral Large)
 *   **Instant Itinerary Generator**: Mistral AI drafts a realistic, day-wise plan based on your group's budget, destination, and unique preferences.
-*   **Smart Budget Auditor**: Real-time financial analysis. The AI detects overspending in specific categories and provides actionable advice (e.g., "You're 20% over on food; try these 3 local budget markets instead").
+*   **Smart Budget Auditor**: Real-time financial analysis. The AI detects overspending in specific categories and provides actionable advice.
 *   **AI Travel Assistant**: A dedicated companion that lives in your trip, ready to answer questions about your plan or suggest changes on the fly.
 
-### 💸 Financial Command Center
+### 💸 Financial Command Center (Real-Time Fintech)
 *   **Zero-Friction Splitting**: Track expenses in real-time. Whether it's a shared dinner or a flight, the app handles the math instantly.
-*   **Optimal Settlement Algorithm**: Minimize group friction. Our algorithm calculates the mathematically fewest number of transactions needed to clear all group debts.
-*   **Live Balance Board**: Real-time visualization of who's "in the green" and who needs to pay up.
+*   **Real-Time Ledger**: A sophisticated backend engine (`recalculateBalances`) computes optimal debts instantly using a bipartite matching approach.
+*   **Live Notifications**: Get notified the second someone adds an expense involving you or pays you back.
+*   **One-Click Settlements**: Integrated mock payment flow to settle debts and clear the ledger instantly.
 
 ### 👥 Collaboration & Social
 *   **Real-Time Group Chat**: Seamless coordination integrated directly into the trip dashboard.
 *   **Live Voting/Polls**: Can't decide on the next activity? Create a poll and let the group decide in real-time.
 *   **One-Click Invites**: Share a unique 8-character code to bring your squad into the command center.
-
----
-
-## 📱 3. Mobile-First Experience
-
-TripSync AI is engineered for use on the go.
-*   **Adaptive Layouts**: Seamless transitions from 4K desktops to compact mobile screens.
-*   **Native-Feel Interactions**: Chat windows transform into elegant **Bottom Sheets** on mobile for a native app experience.
-*   **Touch-Optimized Tabs**: Horizontal scrolling with scroll-snapping for easy navigation through Itineraries, Expenses, and Insights.
 
 ---
 
@@ -63,28 +100,7 @@ TripSync AI is engineered for use on the go.
 
 ---
 
-## 🏗️ 5. System Architecture
-
-```mermaid
-graph TD
-    User((User))
-    NextJS[Next.js App Router]
-    Firebase[Firebase Auth]
-    SupabaseDB[(Supabase PostgreSQL)]
-    SupabaseRT[Supabase Realtime]
-    Mistral[Mistral AI API]
-
-    User -- Auth --> Firebase
-    User -- Interaction --> NextJS
-    NextJS -- Identity Sync --> SupabaseDB
-    NextJS -- JSON-Structured Prompts --> Mistral
-    SupabaseDB -- Broadcast --> SupabaseRT
-    SupabaseRT -- Live UI Updates --> NextJS
-```
-
----
-
-## ⚙️ 6. Setup & Installation
+## ⚙️ 5. Setup & Installation
 
 1.  **Clone & Install**
     ```bash
@@ -101,7 +117,10 @@ graph TD
     ```
 
 3.  **Database Configuration**
-    Run the `database/schema.sql` and `database/add_chat_table.sql` in your Supabase SQL Editor.
+    Run the following SQL files in your Supabase SQL Editor:
+    *   `database/schema.sql`
+    *   `database/fix_finance_backfill.sql` (Creates the finance engine)
+    *   `database/finance_permissions_fix.sql` (Enables real-time sync)
 
 4.  **Run Development Server**
     ```bash
@@ -110,7 +129,7 @@ graph TD
 
 ---
 
-## 📈 7. Future Vision
+## 📈 6. Future Vision
 *   **UPI Deep-Linking**: Settle debts directly via phone-pay/G-pay from the settlement card.
 *   **OCR Receipts**: Snap a photo of a bill, and the AI automatically parses the amount and split members.
 *   **Offline Mode**: Queue expenses while traveling in low-network areas.
