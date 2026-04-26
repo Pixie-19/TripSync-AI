@@ -30,6 +30,9 @@ import ExpensesTab from "@/components/ExpensesTab";
 import InsightsTab from "@/components/InsightsTab";
 import SettlementTab from "@/components/SettlementTab";
 import VotingTab from "@/components/VotingTab";
+import TripChatbot from "@/components/TripChatbot";
+import GroupChat from "@/components/GroupChat";
+import WeatherWidget from "@/components/WeatherWidget";
 import { useAuth } from "@/lib/AuthContext";
 import type { AppUser } from "@/lib/types";
 
@@ -147,7 +150,8 @@ export default function TripPage() {
   const isOverBudget = totalSpent > trip.budget;
 
   return (
-    <div className="min-h-screen bg-dark-900">
+    <>
+      <div className="min-h-screen bg-dark-900">
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="glow-orb w-[500px] h-[500px] bg-brand-600/10 top-0 right-0" />
@@ -211,6 +215,11 @@ export default function TripPage() {
                   {members.length} / {trip.num_people} members
                 </span>
               </div>
+            </div>
+
+            {/* Weather Widget */}
+            <div className="mb-4">
+              <WeatherWidget destination={trip.destination} />
             </div>
 
             {/* Stats */}
@@ -342,6 +351,19 @@ export default function TripPage() {
           )}
         </motion.div>
       </div>
-    </div>
+      </div>
+
+      {/* Floating: AI Chatbot */}
+      {user && <TripChatbot trip={trip} />}
+
+      {/* Floating: Group Chat */}
+      {user && (
+        <GroupChat
+          tripId={tripId}
+          currentUserId={user.id}
+          currentUserName={user.user_metadata?.full_name ?? user.email}
+        />
+      )}
+    </>
   );
 }

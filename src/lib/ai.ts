@@ -1,7 +1,11 @@
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || "";
 const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
 
-async function callMistral(prompt: string): Promise<string> {
+async function callMistral(prompt: string, systemPrompt?: string): Promise<string> {
+  const messages = [];
+  if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+  messages.push({ role: "user", content: prompt });
+
   try {
     const res = await fetch(MISTRAL_URL, {
       method: "POST",
@@ -11,7 +15,7 @@ async function callMistral(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         model: "mistral-large-latest",
-        messages: [{ role: "user", content: prompt }],
+        messages,
         temperature: 0.7,
         max_tokens: 4096,
         response_format: { type: "json_object" }
@@ -29,6 +33,38 @@ async function callMistral(prompt: string): Promise<string> {
     console.error("Mistral Provider Error:", error);
     throw new Error(`AI Service Error: ${error.message}`);
   }
+}
+
+// Chat messages function (no JSON mode - for conversational AI)
+export async function callMistralChat(
+  messages: { role: string; content: string }[],
+  systemPrompt?: string
+): Promise<string> {
+  const allMessages = [];
+  if (systemPrompt) allMessages.push({ role: "system", content: systemPrompt });
+  allMessages.push(...messages);
+
+  const res = await fetch(MISTRAL_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${MISTRAL_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "mistral-large-latest",
+      messages: allMessages,
+      temperature: 0.8,
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Mistral Chat Error: ${res.status} - ${err}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "Sorry, I couldn't process that request.";
 }
 
 // ─── ITINERARY GENERATION ────────────────────────────────────────────────────
@@ -104,7 +140,8 @@ Return a valid JSON object in this format:
   "totalEstimatedCost": 100
 }
 
-Ensure all costs are numbers. All costs in ${currency}.`;
+Ensure all costs are numbers. All costs in ${currency}.
+Do NOT use markdown (**, #, \`) or dollar signs ($) in any text field. Use plain text only.`;
 
   const raw = await callMistral(prompt);
   
@@ -139,7 +176,8 @@ Advisor for trip to ${destination}.
 Budget: ₹${totalBudget}, Spent: ₹${totalSpent}, Days left: ${numDaysLeft}.
 Categories: ${JSON.stringify(categoryBreakdown)}
 
-Return a valid JSON array of 4-6 insights:
+Return a valid JSON array of 4-6 insights. 
+Do NOT use markdown (**, #, \`) or dollar signs ($) in the text. Use plain text only.
 [
   { "type": "warning|success|tip|info", "title": "T", "message": "M", "icon": "E" }
 ]`;

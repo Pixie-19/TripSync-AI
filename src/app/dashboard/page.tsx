@@ -107,16 +107,23 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500/30"
-              />
-            ) : (
-              <div className="avatar w-8 h-8 text-sm">{displayName[0]?.toUpperCase()}</div>
-            )}
-            <span className="text-sm text-white/70 hidden sm:block">{displayName}</span>
+            <button
+              onClick={() => router.push("/profile")}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              id="profile-link-btn"
+              aria-label="Go to profile"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500/30"
+                />
+              ) : (
+                <div className="avatar w-8 h-8 text-sm">{displayName[0]?.toUpperCase()}</div>
+              )}
+              <span className="text-sm text-white/70 hidden sm:block">{displayName}</span>
+            </button>
             <button
               onClick={handleSignOut}
               className="btn-ghost text-sm text-white/50"

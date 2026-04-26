@@ -16,7 +16,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fallback: if Firebase doesn't respond in 4s, unblock the UI
     const fallbackTimer = setTimeout(() => setLoading(false), 4000);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -24,8 +23,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(firebaseUser);
       setLoading(false);
 
-      // Sync Firebase user into Supabase users table
       if (firebaseUser) {
+        // Set auth cookie for middleware protection
+        document.cookie = `ts_auth=${firebaseUser.uid}; path=/; max-age=86400; SameSite=Lax`;
+
+        // Sync Firebase user into Supabase users table
         await supabase.from("users").upsert({
           id: firebaseUser.uid,
           email: firebaseUser.email ?? "",
@@ -33,6 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar_url: firebaseUser.photoURL ?? null,
           updated_at: new Date().toISOString(),
         });
+      } else {
+        // Clear auth cookie on logout
+        document.cookie = "ts_auth=; path=/; max-age=0";
       }
     });
 
