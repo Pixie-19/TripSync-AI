@@ -21,6 +21,7 @@ import {
   Handshake,
   Loader2,
   Share2,
+  History,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency, getDaysCount } from "@/lib/utils";
@@ -31,12 +32,14 @@ import InsightsTab from "@/components/InsightsTab";
 import SettlementTab from "@/components/SettlementTab";
 import VotingTab from "@/components/VotingTab";
 import TripChatbot from "@/components/TripChatbot";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 import GroupChat from "@/components/GroupChat";
 import WeatherWidget from "@/components/WeatherWidget";
+import TransactionHistory from "@/components/TransactionHistory";
 import { useAuth } from "@/lib/AuthContext";
 import type { AppUser } from "@/lib/types";
 
-type Tab = "itinerary" | "expenses" | "insights" | "voting" | "settlement";
+type Tab = "itinerary" | "expenses" | "insights" | "voting" | "settlement" | "transactions";
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "itinerary", label: "Itinerary", icon: <MapPin className="w-4 h-4" /> },
@@ -44,13 +47,14 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "insights", label: "AI Insights", icon: <Brain className="w-4 h-4" /> },
   { id: "voting", label: "Voting", icon: <Vote className="w-4 h-4" /> },
   { id: "settlement", label: "Settle Up", icon: <Handshake className="w-4 h-4" /> },
+  { id: "transactions", label: "History", icon: <History className="w-4 h-4" /> },
 ];
 
 export default function TripPage() {
   const params = useParams();
   const router = useRouter();
   const tripId = params.id as string;
-  const { user: firebaseUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
 
   const [trip, setTrip] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -89,7 +93,7 @@ export default function TripPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!firebaseUser) {
+    if (!authUser) {
       router.replace("/auth");
       return;
     }
@@ -106,15 +110,15 @@ export default function TripPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [tripId, router, fetchTrip, fetchTotalSpent, authLoading, firebaseUser]);
+  }, [tripId, router, fetchTrip, fetchTotalSpent, authLoading, authUser]);
 
   // Build a minimal user-like object for child components
-  const user: AppUser | null = firebaseUser ? {
-    id: firebaseUser.uid,
-    email: firebaseUser.email ?? "",
+  const user: AppUser | null = authUser ? {
+    id: authUser.id,
+    email: authUser.email ?? "",
     user_metadata: {
-      full_name: firebaseUser.displayName,
-      avatar_url: firebaseUser.photoURL,
+      full_name: authUser.user_metadata?.full_name,
+      avatar_url: authUser.user_metadata?.avatar_url,
     },
   } : null;
 
@@ -175,18 +179,20 @@ export default function TripPage() {
             </div>
             <span className="font-display font-bold truncate text-sm sm:text-base">{trip.title}</span>
           </div>
-
-          <button
-            onClick={copyInviteCode}
-            className="btn-ghost text-xs sm:text-sm gap-1 sm:gap-2 px-2 sm:px-3"
-            id="copy-invite-btn"
-          >
-            {copied ? (
-              <><Check className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" /> <span className="hidden sm:inline">Copied!</span><span className="sm:hidden">OK</span></>
-            ) : (
-              <><Copy className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">{trip.invite_code}</span><span className="sm:hidden">Invite</span></>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationsDropdown />
+            <button
+              onClick={copyInviteCode}
+              className="btn-ghost text-xs sm:text-sm gap-1 sm:gap-2 px-2 sm:px-3"
+              id="copy-invite-btn"
+            >
+              {copied ? (
+                <><Check className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" /> <span className="hidden sm:inline">Copied!</span><span className="sm:hidden">OK</span></>
+              ) : (
+                <><Copy className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">{trip.invite_code}</span><span className="sm:hidden">Invite</span></>
+              )}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -345,6 +351,9 @@ export default function TripPage() {
           )}
           {activeTab === "insights" && (
             <InsightsTab tripId={tripId} trip={trip} totalSpent={totalSpent} members={members} />
+          )}
+          {activeTab === "transactions" && (
+            <TransactionHistory tripId={tripId} members={members} currency={trip.currency} />
           )}
           {activeTab === "voting" && (
             <VotingTab tripId={tripId} user={user} />

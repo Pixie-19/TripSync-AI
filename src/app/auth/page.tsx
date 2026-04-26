@@ -6,13 +6,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Mail, Lock, Eye, EyeOff, Loader2, Zap, AlertCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { signInWithGoogle, auth } from "@/lib/firebase";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  updateProfile,
-} from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -29,30 +25,45 @@ export default function AuthPage() {
   // If already signed in → go to dashboard
   useEffect(() => {
     const timer = setTimeout(() => setChecking(false), 2000);
-    const unsub = onAuthStateChanged(auth, (user) => {
-      clearTimeout(timer);
-      if (user) {
+    
+    // Check Supabase session
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        clearTimeout(timer);
         router.replace("/dashboard");
-      } else {
-        setChecking(false);
       }
     });
-    return () => { clearTimeout(timer); unsub(); };
+
+    // Check Firebase session (for Google Login fallback)
+    const unsubFirebase = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        clearTimeout(timer);
+        router.replace("/dashboard");
+      } else {
+        // Only stop checking if neither has a user
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session?.user) setChecking(false);
+        });
+      }
+    });
+
+    return () => { 
+      clearTimeout(timer); 
+      subscription.unsubscribe();
+      unsubFirebase();
+    };
   }, [router]);
 
-  // ── Google Sign-In ──────────────────────────────────
+  // ── Google Sign-In (using Firebase as bridge) ────────
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);
     try {
+      // Use Firebase for Google Sign-In since it's already configured
       await signInWithGoogle();
-      // onAuthStateChanged in layout will detect the sign-in and sync to Supabase
       router.replace("/dashboard");
     } catch (e: any) {
-      if (e.code !== "auth/popup-closed-by-user") {
-        setError(friendlyError(e.code));
-      }
-    } finally {
+      setError(e.message || "Google sign-in failed.");
       setGoogleLoading(false);
     }
   };
@@ -64,16 +75,24 @@ export default function AuthPage() {
     setError(null);
     try {
       if (mode === "signup") {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (name.trim()) {
-          await updateProfile(cred.user, { displayName: name.trim() });
-        }
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name.trim() }
+          }
+        });
+        if (error) throw error;
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
       }
       router.replace("/dashboard");
     } catch (e: any) {
-      setError(friendlyError(e.code));
+      setError(e.message || "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
     }
