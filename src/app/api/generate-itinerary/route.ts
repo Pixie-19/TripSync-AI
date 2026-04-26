@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateItinerary } from "@/lib/ai";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +20,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Check API configuration
+    // 2. Rate limiting
+    const userId = body.userId || request.headers.get("x-forwarded-for") || "anonymous";
+    const rateCheck = checkRateLimit(userId);
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ data: null, error: rateCheck.reason, rateLimited: true }, { status: 429 });
+    }
+
+    // 3. Check API configuration
     if (!process.env.MISTRAL_API_KEY) {
       console.error("MISTRAL_API_KEY is missing");
       return NextResponse.json(

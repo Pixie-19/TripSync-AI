@@ -4,56 +4,58 @@
 @import "tailwindcss";
 
 /* ── Custom Theme Variables ── */
-@theme {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Outfit", "Inter", sans-serif;
+@layer base {
+  :root {
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-display: "Outfit", "Inter", sans-serif;
 
-  /* Brand Blues */
-  --color-brand-50: #f0f9ff;
-  --color-brand-100: #e0f2fe;
-  --color-brand-200: #bae6fd;
-  --color-brand-300: #7dd3fc;
-  --color-brand-400: #38bdf8;
-  --color-brand-500: #0ea5e9;
-  --color-brand-600: #0284c7;
-  --color-brand-700: #0369a1;
-  --color-brand-800: #075985;
-  --color-brand-900: #0c4a6e;
+    /* Brand Blues */
+    --color-brand-50: #f0f9ff;
+    --color-brand-100: #e0f2fe;
+    --color-brand-200: #bae6fd;
+    --color-brand-300: #7dd3fc;
+    --color-brand-400: #38bdf8;
+    --color-brand-500: #0ea5e9;
+    --color-brand-600: #0284c7;
+    --color-brand-700: #0369a1;
+    --color-brand-800: #075985;
+    --color-brand-900: #0c4a6e;
 
-  /* Violet */
-  --color-violet-400: #a78bfa;
-  --color-violet-500: #8b5cf6;
-  --color-violet-600: #7c3aed;
+    /* Violet */
+    --color-violet-400: #a78bfa;
+    --color-violet-500: #8b5cf6;
+    --color-violet-600: #7c3aed;
 
-  /* Emerald */
-  --color-emerald-400: #34d399;
-  --color-emerald-500: #10b981;
+    /* Emerald */
+    --color-emerald-400: #34d399;
+    --color-emerald-500: #10b981;
 
-  /* Rose */
-  --color-rose-400: #fb7185;
-  --color-rose-500: #f43f5e;
+    /* Rose */
+    --color-rose-400: #fb7185;
+    --color-rose-500: #f43f5e;
 
-  /* Amber */
-  --color-amber-400: #fbbf24;
-  --color-amber-500: #f59e0b;
+    /* Amber */
+    --color-amber-400: #fbbf24;
+    --color-amber-500: #f59e0b;
 
-  /* Dark palette */
-  --color-dark-900: #0a0f1e;
-  --color-dark-800: #0f172a;
-  --color-dark-700: #1e293b;
-  --color-dark-600: #334155;
-  --color-dark-500: #475569;
+    /* Dark palette */
+    --color-dark-900: #0a0f1e;
+    --color-dark-800: #0f172a;
+    --color-dark-700: #1e293b;
+    --color-dark-600: #334155;
+    --color-dark-500: #475569;
 
-  /* Border radius */
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
+    /* Border radius */
+    --radius-2xl: 1rem;
+    --radius-3xl: 1.5rem;
 
-  /* Animations */
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
-  --animate-slide-up: slide-up 0.5s ease-out;
-  --animate-fade-in: fade-in 0.3s ease-out;
-  --animate-shimmer: shimmer 2s linear infinite;
+    /* Animations */
+    --animate-float: float 6s ease-in-out infinite;
+    --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+    --animate-slide-up: slide-up 0.5s ease-out;
+    --animate-fade-in: fade-in 0.3s ease-out;
+    --animate-shimmer: shimmer 2s linear infinite;
+  }
 
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
@@ -411,3 +413,84 @@ select option { background: #0f172a; color: white; }
 .to-emerald-600\/5 { --tw-gradient-to: rgba(5,150,105,0.05); }
 .to-rose-500\/20 { --tw-gradient-to: rgba(244,63,94,0.2); }
 .to-amber-500\/20 { --tw-gradient-to: rgba(245,158,11,0.2); }
+
+/* ── Mobile-First & PWA Utilities ── */
+
+/* Safe area insets for notched phones */
+.safe-top    { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Sticky bottom action bar for mobile */
+.mobile-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(10, 15, 30, 0.9);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Touch-friendly minimum tap targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Swipe-friendly horizontal scroll */
+.scroll-x-snap {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x-snap > * {
+  scroll-snap-align: start;
+}
+
+/* Prevent text selection on touch UI elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Better tap highlight */
+* { -webkit-tap-highlight-color: rgba(14, 165, 233, 0.1); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile-specific overrides */
+@media (max-width: 640px) {
+  .btn-primary, .btn-secondary {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .glass-card {
+    border-radius: 0.875rem;
+  }
+
+  /* Full-width modals on mobile */
+  .modal-mobile-full {
+    position: fixed;
+    inset: 0;
+    border-radius: 0;
+    max-height: 100dvh;
+  }
+}
+
+/* bg utilities extra */
+.bg-white\/3 { background-color: rgba(255,255,255,0.03); }
+.bg-white\/4 { background-color: rgba(255,255,255,0.04); }
+.bg-white\/8 { background-color: rgba(255,255,255,0.08); }
+.border-white\/8 { border-color: rgba(255,255,255,0.08); }
+.bg-brand-500\/8 { background-color: rgba(14,165,233,0.08); }

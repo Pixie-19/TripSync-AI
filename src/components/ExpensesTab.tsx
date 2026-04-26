@@ -20,6 +20,8 @@ import {
 } from "@/lib/utils";
 import { format } from "date-fns";
 import { AppUser } from "@/lib/types";
+import AutoDetectExpense from "@/components/AutoDetectExpense";
+
 
 const CATEGORIES = ["food", "transport", "stay", "activities", "shopping", "other"] as const;
 
@@ -90,6 +92,17 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
       title,
       category: autoCategorize(title),
     }));
+  };
+
+  const handleAutoDetected = (expense: { title: string; amount: number; category: string; description: string }) => {
+    setForm((f) => ({
+      ...f,
+      title: expense.title,
+      amount: String(expense.amount),
+      category: expense.category as typeof CATEGORIES[number],
+      description: expense.description,
+    }));
+    setShowAdd(true);
   };
 
   const toggleSplitMember = (userId: string) => {
@@ -292,6 +305,9 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
               </div>
 
               <div className="p-6 space-y-4">
+                {/* Auto-detect UPI/SMS */}
+                <AutoDetectExpense onExpenseDetected={handleAutoDetected} />
+
                 <div>
                   <label className="text-sm text-white/60 mb-1.5 block">Title * (auto-categorizes)</label>
                   <input

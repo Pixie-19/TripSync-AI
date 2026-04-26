@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { formatCurrency, getCategoryColor, getCategoryIcon, getDaysCount } from "@/lib/utils";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
 import type { BudgetInsight } from "@/lib/ai";
+import GroupSummary from "@/components/GroupSummary";
+
 
 const COLORS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#f43f5e", "#64748b"];
 
@@ -14,9 +16,12 @@ interface Props {
   tripId: string;
   trip: any;
   totalSpent: number;
+  members?: any[];
 }
 
-export default function InsightsTab({ tripId, trip, totalSpent }: Props) {
+
+export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: Props) {
+
   const [insights, setInsights] = useState<BudgetInsight[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [memberData, setMemberData] = useState<any[]>([]);
@@ -127,6 +132,9 @@ export default function InsightsTab({ tripId, trip, totalSpent }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Group Member Summary */}
+      {members.length > 0 && <GroupSummary tripId={tripId} members={members} />}
+
       {/* Budget Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-card p-5">

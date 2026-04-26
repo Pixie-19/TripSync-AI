@@ -341,7 +341,7 @@ export default function TripPage() {
             <ExpensesTab tripId={tripId} members={members} user={user} onExpenseChange={fetchTotalSpent} />
           )}
           {activeTab === "insights" && (
-            <InsightsTab tripId={tripId} trip={trip} totalSpent={totalSpent} />
+            <InsightsTab tripId={tripId} trip={trip} totalSpent={totalSpent} members={members} />
           )}
           {activeTab === "voting" && (
             <VotingTab tripId={tripId} user={user} />
