@@ -18,7 +18,6 @@ import {
   Plane,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { signOut } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { formatCurrency, generateInviteCode, getDaysCount } from "@/lib/utils";
 import { format } from "date-fns";
@@ -63,11 +62,11 @@ export default function DashboardPage() {
       router.replace("/auth");
       return;
     }
-    fetchTrips(user.uid);
+    fetchTrips(user.id);
   }, [user, authLoading, router, fetchTrips]);
 
   const handleSignOut = async () => {
-    await signOut();
+    await supabase.auth.signOut();
     router.replace("/auth");
   };
 
@@ -84,8 +83,8 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const displayName = user.displayName ?? user.email?.split("@")[0] ?? "Traveler";
-  const avatarUrl = user.photoURL;
+  const displayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Traveler";
+  const avatarUrl = user.user_metadata?.avatar_url;
 
   return (
     <div className="min-h-screen bg-dark-900 font-sans">
@@ -225,10 +224,10 @@ export default function DashboardPage() {
       </main>
 
       {showCreate && (
-        <CreateTripModal userId={user.uid} onClose={() => setShowCreate(false)} onCreated={handleTripCreated} />
+        <CreateTripModal userId={user.id} onClose={() => setShowCreate(false)} onCreated={handleTripCreated} />
       )}
       {showJoin && (
-        <JoinTripModal userId={user.uid} onClose={() => setShowJoin(false)} onJoined={(id) => router.push(`/trips/${id}`)} />
+        <JoinTripModal userId={user.id} onClose={() => setShowJoin(false)} onJoined={(id) => router.push(`/trips/${id}`)} />
       )}
     </div>
   );

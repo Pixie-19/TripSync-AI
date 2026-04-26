@@ -50,7 +50,7 @@ export default function TripPage() {
   const params = useParams();
   const router = useRouter();
   const tripId = params.id as string;
-  const { user: firebaseUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
 
   const [trip, setTrip] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -89,7 +89,7 @@ export default function TripPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!firebaseUser) {
+    if (!authUser) {
       router.replace("/auth");
       return;
     }
@@ -106,15 +106,15 @@ export default function TripPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [tripId, router, fetchTrip, fetchTotalSpent, authLoading, firebaseUser]);
+  }, [tripId, router, fetchTrip, fetchTotalSpent, authLoading, authUser]);
 
   // Build a minimal user-like object for child components
-  const user: AppUser | null = firebaseUser ? {
-    id: firebaseUser.uid,
-    email: firebaseUser.email ?? "",
+  const user: AppUser | null = authUser ? {
+    id: authUser.id,
+    email: authUser.email ?? "",
     user_metadata: {
-      full_name: firebaseUser.displayName,
-      avatar_url: firebaseUser.photoURL,
+      full_name: authUser.user_metadata?.full_name,
+      avatar_url: authUser.user_metadata?.avatar_url,
     },
   } : null;
 

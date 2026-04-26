@@ -9,10 +9,8 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   if (!isProtected) return NextResponse.next();
 
-  // Firebase auth state is managed client-side; we check for the session cookie
-  // Firebase stores auth in IndexedDB (not cookies), so we use a lightweight
-  // approach: check for our custom "ts_auth" cookie set by AuthContext
-  const authCookie = request.cookies.get("ts_auth");
+  // Logic: Check session from Supabase cookie set by AuthContext
+  const authCookie = request.cookies.get("sb_auth") || request.cookies.get("ts_auth");
 
   if (!authCookie?.value) {
     const loginUrl = new URL("/auth", request.url);

@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency, calculateSettlements } from "@/lib/utils";
+import PaymentModal from "./PaymentModal";
+import { useAuth } from "@/lib/AuthContext";
 
 interface Props {
   tripId: string;
@@ -22,6 +24,9 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
   const [settlements, setSettlements] = useState<{ from: string; to: string; amount: number; settled?: boolean; id?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activePayment, setActivePayment] = useState<typeof settlements[0] | null>(null);
+  const { user } = useAuth();
+  const currentUserId = user?.id;
 
   const getMemberName = (userId: string) => {
     const m = members.find((m) => m.user_id === userId);
@@ -111,9 +116,15 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
     }
   };
 
-  const unsettledCount = settlements.filter((s) => !s.settled).length;
-  const totalToSettle = settlements
-    .filter((s) => !s.settled)
+  const relevantSettlements = settlements.filter(
+    (s) => s.from === currentUserId || s.to === currentUserId
+  );
+
+  const unsettledCountToPay = relevantSettlements.filter((s) => !s.settled && s.from === currentUserId).length;
+  const unsettledCountTotal = relevantSettlements.filter((s) => !s.settled).length;
+  
+  const totalToSettle = relevantSettlements
+    .filter((s) => !s.settled && s.from === currentUserId)
     .reduce((sum, s) => sum + s.amount, 0);
 
   return (
@@ -127,9 +138,9 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
               Settle Up
             </h3>
             <p className="text-white/50 text-xs sm:text-sm mt-0.5 sm:mt-1">
-              {unsettledCount === 0
+              {unsettledCountTotal === 0
                 ? "All expenses settled!"
-                : `${unsettledCount} payment${unsettledCount !== 1 ? "s" : ""} remaining`}
+                : `${unsettledCountToPay} payment${unsettledCountToPay !== 1 ? "s" : ""} remaining`}
             </p>
           </div>
           <button
@@ -142,14 +153,14 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
           </button>
         </div>
 
-        {unsettledCount > 0 && (
+        {unsettledCountToPay > 0 && (
           <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20">
             <div className="text-sm text-white/50">Total outstanding</div>
             <div className="text-2xl font-bold text-rose-400">{formatCurrency(totalToSettle)}</div>
           </div>
         )}
 
-        {unsettledCount === 0 && settlements.length > 0 && (
+        {unsettledCountTotal === 0 && relevantSettlements.length > 0 && (
           <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
             <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
             <div className="font-semibold text-emerald-400">All settled up!</div>
@@ -163,26 +174,30 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="skeleton h-20" />)}
         </div>
-      ) : settlements.length === 0 ? (
+      ) : relevantSettlements.length === 0 ? (
         <div className="glass-card p-12 text-center">
-          <div className="text-5xl mb-4">🎯</div>
-          <h3 className="font-semibold text-lg mb-2">No settlements needed</h3>
+          <div className="text-5xl mb-4">🎉</div>
+          <h3 className="font-semibold text-lg mb-2">You're all settled up!</h3>
           <p className="text-white/40 text-sm">
-            Add some expenses first to calculate who owes whom.
+            No pending payments for you right now.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {settlements.map((settlement, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className={`glass-card p-3 sm:p-5 flex items-center gap-2 sm:gap-4 ${
-                settlement.settled ? "opacity-60" : ""
-              }`}
-            >
+          {relevantSettlements.map((settlement, i) => {
+            const isPayer = settlement.from === currentUserId;
+            const isReceiver = settlement.to === currentUserId;
+
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className={`glass-card p-3 sm:p-5 flex items-center gap-2 sm:gap-4 ${
+                  settlement.settled ? "opacity-60" : ""
+                }`}
+              >
               {/* From */}
               <div className="flex flex-col items-center">
                 <div className="avatar w-10 h-10 text-sm overflow-hidden border border-white/10" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #f43f5e, #fb7185)" }}>
@@ -226,24 +241,44 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
               {/* Action */}
               <div className="ml-auto">
                 {settlement.settled ? (
-                  <div className="flex items-center gap-1 text-emerald-400 text-xs sm:text-sm">
+                  <div className="flex items-center gap-1 text-emerald-400 text-xs sm:text-sm px-2 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                     <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="hidden min-[450px]:inline">Done</span>
+                    <span className="hidden min-[450px]:inline">Paid</span>
                   </div>
-                ) : (
+                ) : isPayer ? (
                   <button
-                    onClick={() => markSettled(settlement)}
+                    onClick={() => setActivePayment(settlement)}
                     disabled={saving}
-                    className="btn-secondary text-[10px] sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 whitespace-nowrap"
+                    className="btn-primary bg-emerald-600 hover:bg-emerald-500 text-[10px] sm:text-sm px-3 sm:px-5 py-1.5 sm:py-2 whitespace-nowrap shadow-[0_0_15px_rgba(16,185,129,0.3)] border-none"
                     id={`settle-btn-${i}`}
                   >
-                    {saving ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" /> : "Paid"}
+                    Pay {formatCurrency(settlement.amount, trip.currency)}
                   </button>
-                )}
+                ) : isReceiver ? (
+                  <div className="flex items-center gap-1 text-brand-400 text-xs sm:text-sm px-2 py-1.5 rounded-lg bg-brand-500/10 border border-brand-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)] font-semibold whitespace-nowrap">
+                    Will Receive
+                  </div>
+                ) : null}
               </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {activePayment && (
+        <PaymentModal
+          isOpen={!!activePayment}
+          onClose={() => setActivePayment(null)}
+          receiverName={getMemberName(activePayment.to)}
+          amount={activePayment.amount}
+          currency={trip.currency}
+          onConfirm={async () => {
+            await markSettled(activePayment);
+            setActivePayment(null);
+          }}
+        />
       )}
 
       {/* Individual balances */}
@@ -257,6 +292,7 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
 
 function MemberBalances({ tripId, members }: { tripId: string; members: any[] }) {
   const [balances, setBalances] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase
@@ -275,6 +311,7 @@ function MemberBalances({ tripId, members }: { tripId: string; members: any[] })
           });
         });
         setBalances(bal);
+        setLoading(false);
       });
   }, [tripId, members]);
 
@@ -290,23 +327,29 @@ function MemberBalances({ tripId, members }: { tripId: string; members: any[] })
 
   return (
     <div className="space-y-3">
-      {Object.entries(balances).map(([userId, balance]) => (
-        <div key={userId} className="flex items-center justify-between py-2 border-b border-white/8 last:border-0">
-          <div className="flex items-center gap-3">
-            <div className="avatar w-8 h-8 text-xs overflow-hidden border border-white/10">
-              {getMemberAvatar(userId) ? (
-                <img src={getMemberAvatar(userId)} alt="" className="w-full h-full object-cover" />
-              ) : (
-                getMemberName(userId)[0]?.toUpperCase()
-              )}
+      {loading ? (
+        <>
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton h-12 w-full" />)}
+        </>
+      ) : (
+        Object.entries(balances).map(([userId, balance]) => (
+          <div key={userId} className="flex items-center justify-between py-2 border-b border-white/8 last:border-0">
+            <div className="flex items-center gap-3">
+              <div className="avatar w-8 h-8 text-xs overflow-hidden border border-white/10">
+                {getMemberAvatar(userId) ? (
+                  <img src={getMemberAvatar(userId)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  getMemberName(userId)[0]?.toUpperCase()
+                )}
+              </div>
+              <span className="text-sm">{getMemberName(userId)}</span>
             </div>
-            <span className="text-sm">{getMemberName(userId)}</span>
+            <div className={`font-semibold text-sm ${balance > 0 ? "text-emerald-400" : balance < 0 ? "text-rose-400" : "text-white/40"}`}>
+              {balance > 0 ? `+${formatCurrency(balance)}` : balance < 0 ? formatCurrency(balance) : "Settled ✓"}
+            </div>
           </div>
-          <div className={`font-semibold text-sm ${balance > 0 ? "text-emerald-400" : balance < 0 ? "text-rose-400" : "text-white/40"}`}>
-            {balance > 0 ? `+${formatCurrency(balance)}` : balance < 0 ? formatCurrency(balance) : "Settled ✓"}
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }
