@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, Mail, MapPin, DollarSign, Edit2, Save, X,
-  Loader2, Camera, Calendar, TrendingUp
+  Loader2, Camera, Calendar, TrendingUp, ShieldCheck
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
@@ -163,8 +163,8 @@ export default function ProfilePage() {
                 {email}
               </div>
               <div className="flex items-center gap-2 text-white/30 text-xs mt-2 justify-center sm:justify-start">
-                <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                  ✈️ Verified Traveler
+                <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3 h-3" /> Verified Traveler
                 </span>
               </div>
             </div>

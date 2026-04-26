@@ -181,18 +181,18 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
           <button
             key={cat}
             onClick={() => setFilterCategory(filterCategory === cat ? "all" : cat)}
-            className={`glass-card p-3 text-center transition-all duration-200 ${
-              filterCategory === cat ? "border-brand-500/40 bg-brand-500/10" : "hover:border-white/20"
+            className={`glass-card p-4 text-center transition-all duration-300 ${
+              filterCategory === cat ? "border-brand-400 shadow-[0_0_20px_rgba(34,211,238,0.2)] bg-brand-500/10" : "hover:border-white/20 hover:bg-white/5"
             }`}
           >
-            <div className="flex justify-center mb-1">
+            <div className="flex justify-center mb-2">
               {(() => {
                 const Icon = getCategoryIcon(cat);
-                return <Icon className="w-6 h-6" />;
+                return <Icon className={`w-6 h-6 ${filterCategory === cat ? "text-brand-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" : "text-white/70"}`} />;
               })()}
             </div>
-            <div className="text-xs font-medium capitalize">{cat}</div>
-            <div className="text-xs text-white/50 mt-0.5">
+            <div className="text-xs font-semibold tracking-wider uppercase">{cat}</div>
+            <div className="text-[10px] text-brand-300/70 mt-1 font-medium">
               {formatCurrency(categoryTotals[cat])}
             </div>
           </button>
@@ -226,7 +226,7 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
         </div>
       ) : filtered.length === 0 ? (
         <div className="glass-card p-12 text-center">
-          <div className="text-5xl mb-4">💸</div>
+          <div className="flex justify-center mb-4"><ReceiptText className="w-12 h-12 text-brand-400" /></div>
           <h3 className="font-semibold text-lg mb-2">No expenses yet</h3>
           <p className="text-white/40 text-sm">
             {searchQuery ? "No expenses match your search." : "Add your first expense to start tracking!"}
@@ -238,38 +238,40 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
             <span className="text-white/50">{filtered.length} expense{filtered.length !== 1 ? "s" : ""}</span>
             <span className="text-brand-400 font-semibold">Total: {formatCurrency(totalFiltered)}</span>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filtered.map((expense, i) => (
               <motion.div
                 key={expense.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass-card-hover p-4 flex items-center gap-4 group transition-all"
+                className="glass-card-hover p-5 flex items-center gap-5 group transition-all duration-300"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${getCategoryColor(expense.category)}`}>
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl border border-white/5 shadow-inner bg-dark-800/80`}>
                   {(() => {
                     const Icon = getCategoryIcon(expense.category);
-                    return <Icon className="w-5 h-5" />;
+                    // Use neon highlights based on who paid
+                    const isCurrentUser = expense.paid_by === user?.id;
+                    return <Icon className={`w-6 h-6 ${isCurrentUser ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]"}`} />;
                   })()}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{expense.title}</div>
-                  <div className="text-sm text-white/40 flex items-center gap-2 mt-0.5">
-                    <span>Paid by {getMemberName(expense.paid_by)}</span>
+                  <div className="font-display font-medium text-lg text-white truncate mb-1">{expense.title}</div>
+                  <div className="text-xs text-white/40 flex items-center gap-2">
+                    <span className="text-white/60">Paid by {getMemberName(expense.paid_by)}</span>
                     <span>•</span>
                     <span>Split {expense.split_among.length} ways</span>
                     <span>•</span>
-                    <span>{format(new Date(expense.created_at), "MMM d")}</span>
+                    <span className="uppercase tracking-wider">{format(new Date(expense.created_at), "MMM d")}</span>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="font-bold text-lg text-brand-400">
+                  <div className="font-display font-medium text-xl text-white mb-0.5 drop-shadow-md">
                     {formatCurrency(expense.amount)}
                   </div>
-                  <div className="text-xs text-white/40">
+                  <div className="text-[10px] uppercase tracking-widest text-brand-400">
                     {formatCurrency(expense.amount / expense.split_among.length)} each
                   </div>
                 </div>

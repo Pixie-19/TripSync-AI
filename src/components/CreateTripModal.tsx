@@ -8,14 +8,14 @@ import { generateInviteCode } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 
 const PREFERENCES = [
-  { id: "budget", label: "Budget 💰", desc: "Keep costs low" },
-  { id: "luxury", label: "Luxury ✨", desc: "Spare no expense" },
-  { id: "food", label: "Foodie 🍜", desc: "Local cuisine focus" },
-  { id: "adventure", label: "Adventure 🧗", desc: "Outdoor activities" },
-  { id: "culture", label: "Culture 🏛️", desc: "History & art" },
-  { id: "nightlife", label: "Nightlife 🎉", desc: "Bars & clubs" },
-  { id: "family", label: "Family 👨‍👩‍👧", desc: "Kid-friendly" },
-  { id: "nature", label: "Nature 🌿", desc: "Parks & wildlife" },
+  { id: "budget", label: "Budget", desc: "Keep costs low" },
+  { id: "luxury", label: "Luxury", desc: "Spare no expense" },
+  { id: "food", label: "Foodie", desc: "Local cuisine focus" },
+  { id: "adventure", label: "Adventure", desc: "Outdoor activities" },
+  { id: "culture", label: "Culture", desc: "History & art" },
+  { id: "nightlife", label: "Nightlife", desc: "Bars & clubs" },
+  { id: "family", label: "Family", desc: "Kid-friendly" },
+  { id: "nature", label: "Nature", desc: "Parks & wildlife" },
 ];
 
 interface Props {
@@ -142,7 +142,7 @@ export default function CreateTripModal({ userId, onClose, onCreated }: Props) {
                   <input
                     id="trip-title"
                     className="input-field"
-                    placeholder="e.g. Goa Summer Blast 🏖️"
+                    placeholder="e.g. Goa Summer Blast"
                     value={form.title}
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   />

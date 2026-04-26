@@ -123,7 +123,7 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
             </h3>
             <p className="text-white/50 text-sm mt-1">
               {unsettledCount === 0
-                ? "All expenses settled! 🎉"
+                ? "All expenses settled!"
                 : `${unsettledCount} payment${unsettledCount !== 1 ? "s" : ""} remaining`}
             </p>
           </div>
@@ -148,7 +148,7 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
           <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
             <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
             <div className="font-semibold text-emerald-400">All settled up!</div>
-            <div className="text-sm text-white/40 mt-1">Everyone's even. Time to plan the next trip! ✈️</div>
+            <div className="text-sm text-white/40 mt-1">Everyone's even. Time to plan the next trip!</div>
           </div>
         )}
       </div>

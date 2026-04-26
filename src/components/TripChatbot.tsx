@@ -26,8 +26,8 @@ export default function TripChatbot({ trip }: Props) {
     {
       role: "assistant",
       content: trip
-        ? `Hey! 👋 I'm TripBot, your AI travel assistant for ${trip.destination}! Ask me anything about the destination, restaurants, activities, or budget tips.`
-        : "Hey! 👋 I'm TripBot. Select a trip or ask me anything about travel planning!",
+        ? `Hey! I'm TripBot, your AI travel assistant for ${trip.destination}! Ask me anything about the destination, restaurants, activities, or budget tips.`
+        : "Hey! I'm TripBot. Select a trip or ask me anything about travel planning!",
     },
   ]);
   const [input, setInput] = useState("");
@@ -89,7 +89,7 @@ export default function TripChatbot({ trip }: Props) {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "⚠️ Connection error. Please try again." },
+        { role: "assistant", content: "Connection error. Please try again." },
       ]);
     } finally {
       setLoading(false);

@@ -92,7 +92,7 @@ export default function ItineraryTab({ trip, user }: Props) {
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           className="text-7xl mb-6"
         >
-          🤖
+          <Brain className="w-12 h-12 text-brand-400 mx-auto" />
         </motion.div>
         <h3 className="font-display font-bold text-2xl mb-3">AI Itinerary Generator</h3>
         <p className="text-white/50 mb-2 max-w-md mx-auto">

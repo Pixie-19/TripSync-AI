@@ -138,7 +138,7 @@ export default function VotingTab({ tripId, user }: Props) {
         </div>
       ) : votes.length === 0 ? (
         <div className="glass-card p-12 text-center">
-          <div className="text-5xl mb-4">🗳️</div>
+          <div className="flex justify-center mb-4"><VoteIcon className="w-12 h-12 text-brand-400" /></div>
           <h3 className="font-semibold text-lg mb-2">No polls yet</h3>
           <p className="text-white/40 text-sm">Create a poll to let the group decide!</p>
         </div>

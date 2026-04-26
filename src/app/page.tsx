@@ -13,6 +13,15 @@ import {
   Globe,
   CreditCard,
   Brain,
+  Plane,
+  Bot,
+  CheckCircle2,
+  Rocket,
+  Heart,
+  Utensils,
+  AlertTriangle,
+  Car,
+  Building2,
 } from "lucide-react";
 
 const features = [
@@ -204,7 +213,7 @@ export default function HomePage() {
                 <div className="col-span-2 space-y-4">
                   <div className="glass-card p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-semibold text-white/80">Goa Beach Trip 🏖️</div>
+                      <div className="text-sm font-semibold text-white/80">Goa Beach Trip</div>
                       <div className="badge bg-emerald-500/20 text-emerald-400">Active</div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
@@ -223,9 +232,9 @@ export default function HomePage() {
                       Recent Expenses
                     </div>
                     {[
-                      { icon: "🍽️", name: "Zomato Dinner", amt: "₹1,200", color: "text-amber-400" },
-                      { icon: "🚗", name: "Uber to Beach", amt: "₹340", color: "text-brand-400" },
-                      { icon: "🏨", name: "Hotel Booking", amt: "₹8,500", color: "text-violet-400" },
+                      { icon: <Utensils className="w-4 h-4 text-amber-400" />, name: "Zomato Dinner", amt: "₹1,200", color: "text-amber-400" },
+                      { icon: <Car className="w-4 h-4 text-brand-400" />, name: "Uber to Beach", amt: "₹340", color: "text-brand-400" },
+                      { icon: <Building2 className="w-4 h-4 text-violet-400" />, name: "Hotel Booking", amt: "₹8,500", color: "text-violet-400" },
                     ].map((e, i) => (
                       <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                         <div className="flex items-center gap-2 text-sm">
@@ -263,7 +272,7 @@ export default function HomePage() {
                       AI Insight
                     </div>
                     <div className="text-xs text-amber-400 flex gap-2">
-                      <span>⚠️</span>
+                      <span><AlertTriangle className="w-5 h-5 text-amber-500" /></span>
                       <span>Food spend is 45% of budget. Consider local restaurants to save ₹2,000.</span>
                     </div>
                   </div>
@@ -326,10 +335,10 @@ export default function HomePage() {
         <div className="relative">
           <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-brand-500/50 via-violet-500/50 to-transparent" />
           {[
-            { step: "1", title: "Create Your Trip", desc: "Add destination, budget, dates, and invite your friends with a unique code.", icon: "✈️" },
-            { step: "2", title: "Generate AI Itinerary", desc: "Our AI builds a day-wise plan with places, timings, and cost estimates.", icon: "🤖" },
-            { step: "3", title: "Track Expenses", desc: "Add expenses on the go. AI auto-categorizes them. Everyone sees the split.", icon: "💳" },
-            { step: "4", title: "Settle Up", desc: "See who owes whom and settle with minimal transactions at trip's end.", icon: "✅" },
+            { step: "1", title: "Create Your Trip", desc: "Add destination, budget, dates, and invite your friends with a unique code.", icon: <Plane className="w-6 h-6 text-brand-400" /> },
+            { step: "2", title: "Generate AI Itinerary", desc: "Our AI builds a day-wise plan with places, timings, and cost estimates.", icon: <Bot className="w-6 h-6 text-violet-400" /> },
+            { step: "3", title: "Track Expenses", desc: "Add expenses on the go. AI auto-categorizes them. Everyone sees the split.", icon: <CreditCard className="w-6 h-6 text-emerald-400" /> },
+            { step: "4", title: "Settle Up", desc: "See who owes whom and settle with minimal transactions at trip's end.", icon: <CheckCircle2 className="w-6 h-6 text-rose-400" /> },
           ].map((step, i) => (
             <motion.div
               key={step.step}
@@ -343,7 +352,7 @@ export default function HomePage() {
                 {step.step}
               </div>
               <div className="glass-card flex-1 p-5">
-                <div className="text-2xl mb-2">{step.icon}</div>
+                <div className="mb-3">{step.icon}</div>
                 <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
                 <p className="text-white/50 text-sm">{step.desc}</p>
               </div>
@@ -361,7 +370,11 @@ export default function HomePage() {
           className="glass-card p-12"
           style={{ background: "linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(139,92,246,0.08) 100%)" }}
         >
-          <div className="text-5xl mb-6">🚀</div>
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 rounded-full bg-dark-800/80 border border-white/5 flex items-center justify-center shadow-lg">
+              <Rocket className="w-10 h-10 text-brand-400" />
+            </div>
+          </div>
           <h2 className="font-display font-black text-4xl md:text-5xl mb-4">
             Your next trip starts here
           </h2>
@@ -386,7 +399,9 @@ export default function HomePage() {
             <MapPin className="w-4 h-4" />
             <span>TripSync AI © 2025</span>
           </div>
-          <div>Built with ❤️ for Hackathon</div>
+          <div className="flex items-center gap-1.5">
+            Built with <Heart className="w-4 h-4 text-rose-500 fill-rose-500" /> for Hackathon
+          </div>
         </div>
       </footer>
     </main>

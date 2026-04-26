@@ -136,7 +136,7 @@ export default function TripPage() {
   if (!trip) {
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center gap-4">
-        <div className="text-6xl">🗺️</div>
+        <div className="flex justify-center mb-6"><MapPin className="w-16 h-16 text-brand-400" /></div>
         <h2 className="font-display font-bold text-2xl">Trip not found</h2>
         <button onClick={() => router.push("/dashboard")} className="btn-primary">
           Back to Dashboard

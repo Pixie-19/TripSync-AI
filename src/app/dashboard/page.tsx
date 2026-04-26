@@ -15,6 +15,7 @@ import {
   Loader2,
   Key,
   DollarSign,
+  Plane,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOut } from "@/lib/firebase";
@@ -87,29 +88,32 @@ export default function DashboardPage() {
   const avatarUrl = user.photoURL;
 
   return (
-    <div className="min-h-screen bg-dark-900">
-      {/* Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="glow-orb w-[400px] h-[400px] bg-brand-600/15 top-0 right-0" />
-        <div className="glow-orb w-[300px] h-[300px] bg-violet-600/10 bottom-0 left-0" />
+    <div className="min-h-screen bg-dark-900 font-sans">
+      {/* Cinematic Hero Background */}
+      <div className="absolute top-0 left-0 w-full h-[60vh] z-0 pointer-events-none overflow-hidden">
+        <img 
+          src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2560&q=80" 
+          alt="Mountain Hero" 
+          className="w-full h-full object-cover opacity-20 mix-blend-luminosity"
+        />
+        {/* Gradient overlay to blend into the deep black background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-dark-900/40 via-dark-900/80 to-dark-900" />
       </div>
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-white/8 bg-dark-900/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
+      <nav className="relative z-50 pt-6 px-6 max-w-7xl mx-auto mb-12">
+        <div className="w-full flex items-center justify-between glass-card rounded-full px-6 py-4 border border-white/10 bg-white/5 backdrop-blur-md">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-dark-900" />
             </div>
-            <span className="font-display font-bold text-lg">
-              Trip<span className="gradient-text">Sync</span> AI
-            </span>
+            <span className="font-display font-semibold text-lg tracking-tight">TripSync</span>
           </div>
 
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/profile")}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/5 pr-3 pl-1 py-1 rounded-full border border-white/10"
               id="profile-link-btn"
               aria-label="Go to profile"
             >
@@ -117,16 +121,16 @@ export default function DashboardPage() {
                 <img
                   src={avatarUrl}
                   alt={displayName}
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500/30"
+                  className="w-7 h-7 rounded-full object-cover"
                 />
               ) : (
-                <div className="avatar w-8 h-8 text-sm">{displayName[0]?.toUpperCase()}</div>
+                <div className="avatar w-7 h-7 text-xs">{displayName[0]?.toUpperCase()}</div>
               )}
-              <span className="text-sm text-white/70 hidden sm:block">{displayName}</span>
+              <span className="text-sm font-medium text-white/80 hidden sm:block">{displayName.split(" ")[0]}</span>
             </button>
             <button
               onClick={handleSignOut}
-              className="btn-ghost text-sm text-white/50"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               id="signout-btn"
             >
               <LogOut className="w-4 h-4" />
@@ -140,13 +144,15 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-16 mt-8"
         >
           <div>
-            <h1 className="font-display font-bold text-3xl md:text-4xl mb-1">
-              Welcome back, {displayName.split(" ")[0]}! 👋
+            <h1 className="font-display font-medium text-4xl md:text-[2.75rem] mb-3 tracking-wider uppercase text-brand-400">
+              TIME TO TRAVEL, {displayName.split(" ")[0]}
             </h1>
-            <p className="text-white/50">Manage your trips and adventures</p>
+            <p className="text-white/50 text-sm leading-relaxed max-w-lg">
+              Manage your trips and upcoming adventures with seamless AI planning.
+            </p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => setShowJoin(true)} className="btn-secondary" id="join-trip-btn">
@@ -171,11 +177,11 @@ export default function DashboardPage() {
               { icon: <Users className="w-5 h-5 text-violet-400" />, value: trips.reduce((s, t) => s + t.num_people, 0), label: "People", color: "from-violet-500/10 to-violet-600/5 border-violet-500/20" },
               { icon: <DollarSign className="w-5 h-5 text-emerald-400" />, value: formatCurrency(trips.reduce((s, t) => s + t.budget, 0)), label: "Total Budget", color: "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20" },
             ].map((s) => (
-              <div key={s.label} className={`glass-card p-4 bg-gradient-to-br ${s.color} border flex items-center gap-4`}>
-                <div className="w-10 h-10 rounded-xl bg-dark-800 flex items-center justify-center">{s.icon}</div>
+              <div key={s.label} className={`glass-card p-5 bg-gradient-to-br ${s.color} border flex items-center gap-5 hover:bg-white/5 transition-colors duration-300`}>
+                <div className="w-12 h-12 rounded-xl bg-dark-800/80 flex items-center justify-center border border-white/5 shadow-lg">{s.icon}</div>
                 <div>
-                  <div className="font-display font-bold text-xl">{s.value}</div>
-                  <div className="text-white/50 text-xs">{s.label}</div>
+                  <div className="font-display font-medium text-2xl text-white mb-0.5">{s.value}</div>
+                  <div className="text-white/40 text-[10px] font-medium tracking-widest uppercase">{s.label}</div>
                 </div>
               </div>
             ))}
@@ -189,7 +195,7 @@ export default function DashboardPage() {
           </div>
         ) : trips.length === 0 ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-16 text-center">
-            <div className="text-7xl mb-6">✈️</div>
+            <div className="flex justify-center mb-6"><Plane className="w-16 h-16 text-brand-400" /></div>
             <h2 className="font-display font-bold text-2xl mb-3">No trips yet!</h2>
             <p className="text-white/50 mb-8 max-w-sm mx-auto">Create your first trip and invite your friends to start planning together.</p>
             <div className="flex gap-3 justify-center">
@@ -230,8 +236,38 @@ export default function DashboardPage() {
 
 function TripCard({ trip, index, onClick }: { trip: Trip; index: number; onClick: () => void }) {
   const days = getDaysCount(trip.start_date, trip.end_date);
-  const emojis = ["🏖️", "🏔️", "🌆", "🗺️", "✈️", "🌴"];
-  const emoji = emojis[index % emojis.length];
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchImage() {
+      try {
+        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(trip.destination)}`);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        if (isMounted) {
+          if (data.thumbnail && data.thumbnail.source) {
+            setImageUrl(data.thumbnail.source);
+          } else {
+            setImageUrl('');
+          }
+        }
+      } catch (e) {
+        if (isMounted) setImageUrl('');
+      }
+    }
+    fetchImage();
+    return () => { isMounted = false; };
+  }, [trip.destination]);
+
+  // Use a deterministic gradient if no image is found
+  const gradients = [
+    "from-brand-500/40 to-violet-500/40",
+    "from-emerald-500/40 to-brand-500/40",
+    "from-amber-500/40 to-rose-500/40",
+    "from-violet-500/40 to-rose-500/40",
+  ];
+  const fallbackGradient = gradients[index % gradients.length];
 
   return (
     <motion.div
@@ -239,33 +275,48 @@ function TripCard({ trip, index, onClick }: { trip: Trip; index: number; onClick
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       onClick={onClick}
-      className="glass-card-hover p-6 cursor-pointer group"
+      className="glass-card rounded-[1.5rem] p-3 cursor-pointer group bg-[#161B22]/80 border border-white/10 hover:border-white/20 hover:bg-[#161B22] transition-all duration-300 shadow-xl"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/20 to-violet-500/20 border border-brand-500/20 flex items-center justify-center text-2xl">{emoji}</div>
-        <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-brand-400 group-hover:translate-x-1 transition-all duration-200" />
+      <div className="relative w-full h-40 mb-4 overflow-hidden rounded-[1rem]">
+        {imageUrl === null ? (
+          <div className="w-full h-full bg-white/5 animate-pulse" />
+        ) : imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={trip.destination} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${fallbackGradient} group-hover:scale-105 transition-transform duration-700`} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0F16]/90 to-transparent pointer-events-none" />
+        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+          <div className="text-white/80 text-xs flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> {trip.destination}
+          </div>
+          <div className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-[10px] font-medium text-white flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> LIVE
+          </div>
+        </div>
       </div>
-      <h3 className="font-display font-semibold text-xl mb-1 group-hover:text-brand-300 transition-colors">{trip.title}</h3>
-      <p className="text-white/50 text-sm flex items-center gap-1 mb-4">
-        <MapPin className="w-3 h-3" /> {trip.destination}
-      </p>
-      <div className="divider" />
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div>
-          <div className="text-brand-400 font-semibold text-sm">{formatCurrency(trip.budget, trip.currency)}</div>
-          <div className="text-white/40 text-xs">Budget</div>
+      
+      <div className="px-2 pb-2">
+        <h3 className="font-medium text-lg mb-2 group-hover:text-white transition-colors">{trip.title}</h3>
+        
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          <span className="px-2.5 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] text-white/60">{days} Days</span>
+          <span className="px-2.5 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] text-white/60">{trip.num_people} People</span>
+          <span className="px-2.5 py-1 rounded-full border border-white/10 bg-white/5 text-[10px] text-white/60 font-semibold">{formatCurrency(trip.budget, trip.currency)}</span>
         </div>
-        <div>
-          <div className="text-violet-400 font-semibold text-sm flex items-center justify-center gap-1"><Users className="w-3 h-3" />{trip.num_people}</div>
-          <div className="text-white/40 text-xs">People</div>
+
+        <div className="flex gap-2">
+          <button className="flex-1 py-2 rounded-full border border-white/10 bg-white/5 text-xs font-medium hover:bg-white/10 transition-colors">
+            View Details
+          </button>
+          <button className="w-9 h-9 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+            <ArrowRight className="w-3 h-3 text-white/70 group-hover:translate-x-0.5 transition-transform" />
+          </button>
         </div>
-        <div>
-          <div className="text-emerald-400 font-semibold text-sm flex items-center justify-center gap-1"><Calendar className="w-3 h-3" />{days}d</div>
-          <div className="text-white/40 text-xs">Duration</div>
-        </div>
-      </div>
-      <div className="mt-4 text-xs text-white/30">
-        {format(new Date(trip.start_date), "MMM d")} – {format(new Date(trip.end_date), "MMM d, yyyy")}
       </div>
     </motion.div>
   );

@@ -154,7 +154,7 @@ export default function GroupChat({ tripId, currentUserId, currentUserName }: Pr
             <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ minHeight: "200px", maxHeight: "280px" }}>
               {messages.length === 0 && (
                 <div className="text-center py-8 text-white/30 text-sm">
-                  No messages yet. Say hello! 👋
+                  No messages yet. Say hello!
                 </div>
               )}
               {messages.map((msg) => {
