@@ -23,6 +23,7 @@ import { formatCurrency, generateInviteCode, getDaysCount } from "@/lib/utils";
 import { format } from "date-fns";
 import CreateTripModal from "@/components/CreateTripModal";
 import JoinTripModal from "@/components/JoinTripModal";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 
 interface Trip {
   id: string;
@@ -110,6 +111,7 @@ export default function DashboardPage() {
         </div>
 
           <div className="flex items-center gap-4">
+            <NotificationsDropdown />
             <button
               onClick={() => router.push("/profile")}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/5 pr-3 pl-1 py-1 rounded-full border border-white/10"

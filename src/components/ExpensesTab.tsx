@@ -21,6 +21,7 @@ import {
 import { format } from "date-fns";
 import { AppUser } from "@/lib/types";
 import AutoDetectExpense from "@/components/AutoDetectExpense";
+import { logExpenseAndNotify, recalculateBalances } from "@/lib/finance";
 
 
 const CATEGORIES = ["food", "transport", "stay", "activities", "shopping", "other"] as const;
@@ -136,6 +137,14 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
 
       if (error) throw error;
 
+      await logExpenseAndNotify({
+        tripId,
+        payerId: form.paid_by,
+        splitAmong: form.split_among,
+        amount: parseFloat(form.amount),
+        expenseTitle: form.title,
+      });
+
       setShowAdd(false);
       setForm({
         title: "",
@@ -153,7 +162,11 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
   };
 
   const deleteExpense = async (id: string) => {
-    await supabase.from("expenses").delete().eq("id", id);
+    const { error } = await supabase.from("expenses").delete().eq("id", id);
+    if (!error) {
+      await recalculateBalances(tripId);
+      onExpenseChange(); // Refresh total stats
+    }
   };
 
   const getMemberName = (userId: string) => {
