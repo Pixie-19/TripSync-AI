@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
-import { signOut } from "@/lib/firebase";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -53,15 +52,16 @@ export default function ProfilePage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) { router.replace("/auth"); return; }
-    setDisplayName(user.displayName ?? "");
-    fetchStats(user.uid);
+    setDisplayName(user.user_metadata?.full_name ?? "");
+    fetchStats(user.id);
   }, [user, authLoading, router, fetchStats]);
 
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
-      await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.uid);
+      await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
+      await supabase.auth.updateUser({ data: { full_name: displayName } });
       toast.success("Profile updated!");
       setEditing(false);
     } catch {
@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const avatarUrl = user.photoURL;
+  const avatarUrl = user.user_metadata?.avatar_url;
   const email = user.email ?? "";
 
   return (
@@ -100,7 +100,7 @@ export default function ProfilePage() {
           <span className="font-display font-bold">My Profile</span>
           <div className="ml-auto">
             <button
-              onClick={async () => { await signOut(); router.replace("/auth"); }}
+              onClick={async () => { await supabase.auth.signOut(); router.replace("/auth"); }}
               className="btn-ghost text-sm text-rose-400"
             >
               Sign Out

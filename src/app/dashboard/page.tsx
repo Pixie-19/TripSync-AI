@@ -18,12 +18,12 @@ import {
   Plane,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { signOut } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { formatCurrency, generateInviteCode, getDaysCount } from "@/lib/utils";
 import { format } from "date-fns";
 import CreateTripModal from "@/components/CreateTripModal";
 import JoinTripModal from "@/components/JoinTripModal";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 
 interface Trip {
   id: string;
@@ -63,11 +63,11 @@ export default function DashboardPage() {
       router.replace("/auth");
       return;
     }
-    fetchTrips(user.uid);
+    fetchTrips(user.id);
   }, [user, authLoading, router, fetchTrips]);
 
   const handleSignOut = async () => {
-    await signOut();
+    await supabase.auth.signOut();
     router.replace("/auth");
   };
 
@@ -84,8 +84,8 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const displayName = user.displayName ?? user.email?.split("@")[0] ?? "Traveler";
-  const avatarUrl = user.photoURL;
+  const displayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Traveler";
+  const avatarUrl = user.user_metadata?.avatar_url;
 
   return (
     <div className="min-h-screen bg-dark-900 font-sans">
@@ -111,6 +111,7 @@ export default function DashboardPage() {
         </div>
 
           <div className="flex items-center gap-4">
+            <NotificationsDropdown />
             <button
               onClick={() => router.push("/profile")}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity bg-white/5 pr-3 pl-1 py-1 rounded-full border border-white/10"
@@ -225,10 +226,10 @@ export default function DashboardPage() {
       </main>
 
       {showCreate && (
-        <CreateTripModal userId={user.uid} onClose={() => setShowCreate(false)} onCreated={handleTripCreated} />
+        <CreateTripModal userId={user.id} onClose={() => setShowCreate(false)} onCreated={handleTripCreated} />
       )}
       {showJoin && (
-        <JoinTripModal userId={user.uid} onClose={() => setShowJoin(false)} onJoined={(id) => router.push(`/trips/${id}`)} />
+        <JoinTripModal userId={user.id} onClose={() => setShowJoin(false)} onJoined={(id) => router.push(`/trips/${id}`)} />
       )}
     </div>
   );
