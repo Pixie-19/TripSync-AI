@@ -507,3 +507,38 @@ select option { background: #0f172a; color: white; }
 .bg-white\/8 { background-color: rgba(255,255,255,0.08); }
 .border-white\/8 { border-color: rgba(255,255,255,0.08); }
 .bg-brand-500\/8 { background-color: rgba(14,165,233,0.08); }
+/* Mobile Utilities */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scroll-x-snap {
+    scroll-snap-type: x mandatory;
+  }
+  
+  .scroll-x-snap > * {
+    scroll-snap-align: center;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .safe-pb {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+.shadow-glow-emerald {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.shadow-glow-blue {
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+}

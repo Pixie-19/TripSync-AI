@@ -27,6 +27,25 @@ export default function GroupChat({ tripId, currentUserId, currentUserName }: Pr
   const [sending, setSending] = useState(false);
   const [unread, setUnread] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile for responsive behavior
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (open && isMobile) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => { document.body.style.overflow = "unset"; };
+  }, [open, isMobile]);
 
   useEffect(() => {
     if (!open) return;
@@ -115,7 +134,11 @@ export default function GroupChat({ tripId, currentUserId, currentUserName }: Pr
         onClick={() => { setOpen(true); setUnread(0); }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-24 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg flex items-center justify-center"
+        className={`fixed z-[55] flex items-center justify-center transition-all shadow-glow-emerald
+          ${isMobile 
+            ? "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-4 w-12 h-12 rounded-2xl" 
+            : "bottom-24 right-6 w-12 h-12 rounded-full"} 
+          bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg`}
         aria-label="Open group chat"
         id="group-chat-fab"
       >
@@ -128,16 +151,38 @@ export default function GroupChat({ tripId, currentUserId, currentUserName }: Pr
       </motion.button>
 
       <AnimatePresence>
+        {open && isMobile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 bg-dark-900/60 backdrop-blur-sm z-[60]"
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-40 right-6 z-50 w-[360px] flex flex-col glass-card border border-white/10 shadow-2xl overflow-hidden"
-            style={{ maxWidth: "calc(100vw - 48px)", maxHeight: "480px" }}
+            initial={isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, y: 20, scale: 0.95 }}
+            animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className={`fixed z-[65] flex flex-col glass-card border border-white/10 shadow-2xl overflow-hidden bg-dark-800/95 backdrop-blur-2xl
+              ${isMobile 
+                ? "bottom-0 left-0 right-0 h-[85vh] rounded-t-3xl rounded-b-none border-b-0 border-x-0" 
+                : "bottom-40 right-6 w-[360px] max-h-[480px] rounded-2xl"}`}
           >
+            {/* Mobile Drag Handle */}
+            {isMobile && (
+              <div className="w-full flex justify-center pt-3 pb-1">
+                <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+              </div>
+            )}
+
             {/* Header */}
-            <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-emerald-500/10">
+            <div className={`flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-emerald-500/10 ${!isMobile && "pt-5"}`}>
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                 <Users className="w-4 h-4 text-white" />
               </div>

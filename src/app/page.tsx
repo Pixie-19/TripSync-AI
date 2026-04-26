@@ -94,36 +94,36 @@ export default function HomePage() {
       </div>
 
       {/* Nav */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
+      <nav className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
-            <MapPin className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
+            <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="font-display font-bold text-xl">
-            Trip<span className="gradient-text">Sync</span> AI
+          <span className="font-display font-bold text-lg sm:text-xl">
+            Trip<span className="gradient-text">Sync</span><span className="hidden sm:inline"> AI</span>
           </span>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3"
+          className="flex items-center gap-1.5 sm:gap-3"
         >
           <button
             onClick={() => router.push("/auth")}
-            className="btn-ghost text-sm"
+            className="btn-ghost text-xs sm:text-sm px-2 sm:px-4"
           >
             Sign In
           </button>
           <button
             onClick={() => router.push("/auth")}
-            className="btn-primary text-sm"
+            className="btn-primary text-xs sm:text-sm px-3 sm:px-6"
           >
-            Get Started <ArrowRight className="w-4 h-4" />
+            Get Started <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
           </button>
         </motion.div>
       </nav>
@@ -175,7 +175,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center justify-center gap-12 mt-20"
+          className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-8 sm:gap-12 mt-16 sm:mt-20"
         >
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
@@ -209,14 +209,14 @@ export default function HomePage() {
               </div>
 
               {/* Fake dashboard */}
-              <div className="p-6 grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-4">
+              <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="col-span-1 md:col-span-2 space-y-4">
                   <div className="glass-card p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="text-sm font-semibold text-white/80">Goa Beach Trip</div>
                       <div className="badge bg-emerald-500/20 text-emerald-400">Active</div>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {["₹45,000", "6 Members", "5 Days"].map((v, i) => (
                         <div key={i} className="glass-card p-3 text-center">
                           <div className="text-sm font-bold text-brand-400">{v}</div>

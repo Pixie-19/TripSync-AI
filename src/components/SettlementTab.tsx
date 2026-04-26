@@ -28,6 +28,11 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
     return m?.users?.full_name ?? m?.users?.email?.split("@")[0] ?? userId;
   };
 
+  const getMemberAvatar = (userId: string) => {
+    const m = members.find((m) => m.user_id === userId);
+    return m?.users?.avatar_url;
+  };
+
   const computeSettlements = useCallback(async () => {
     setLoading(true);
 
@@ -114,14 +119,14 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
   return (
     <div className="space-y-6">
       {/* Header card */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-display font-bold text-xl flex items-center gap-2">
-              <Handshake className="w-5 h-5 text-emerald-400" />
+            <h3 className="font-display font-bold text-lg sm:text-xl flex items-center gap-2">
+              <Handshake className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               Settle Up
             </h3>
-            <p className="text-white/50 text-sm mt-1">
+            <p className="text-white/50 text-xs sm:text-sm mt-0.5 sm:mt-1">
               {unsettledCount === 0
                 ? "All expenses settled!"
                 : `${unsettledCount} payment${unsettledCount !== 1 ? "s" : ""} remaining`}
@@ -130,9 +135,9 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
           <button
             onClick={computeSettlements}
             disabled={loading}
-            className="btn-ghost text-sm"
+            className="btn-ghost text-xs sm:text-sm"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>
@@ -174,14 +179,18 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }}
-              className={`glass-card p-5 flex items-center gap-4 ${
+              className={`glass-card p-3 sm:p-5 flex items-center gap-2 sm:gap-4 ${
                 settlement.settled ? "opacity-60" : ""
               }`}
             >
               {/* From */}
               <div className="flex flex-col items-center">
-                <div className="avatar w-10 h-10 text-sm" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #f43f5e, #fb7185)" }}>
-                  {getMemberName(settlement.from)[0]?.toUpperCase()}
+                <div className="avatar w-10 h-10 text-sm overflow-hidden border border-white/10" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #f43f5e, #fb7185)" }}>
+                  {getMemberAvatar(settlement.from) ? (
+                    <img src={getMemberAvatar(settlement.from)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    getMemberName(settlement.from)[0]?.toUpperCase()
+                  )}
                 </div>
                 <div className="text-xs text-white/50 mt-1 max-w-[70px] text-center truncate">
                   {getMemberName(settlement.from)}
@@ -189,21 +198,25 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
               </div>
 
               {/* Arrow + Amount */}
-              <div className="flex-1 flex flex-col items-center">
-                <div className={`font-display font-bold text-xl ${settlement.settled ? "text-white/30 line-through" : "text-brand-400"}`}>
+              <div className="flex-1 flex flex-col items-center min-w-0">
+                <div className={`font-display font-bold text-sm sm:text-xl truncate ${settlement.settled ? "text-white/30 line-through" : "text-brand-400"}`}>
                   {formatCurrency(settlement.amount, trip.currency)}
                 </div>
-                <div className="flex items-center gap-2 text-white/40 text-xs mt-1">
-                  <div className="h-px w-12 bg-gradient-to-r from-transparent to-white/20" />
-                  <ArrowRight className="w-4 h-4" />
-                  <div className="h-px w-12 bg-gradient-to-l from-transparent to-white/20" />
+                <div className="flex items-center gap-1 sm:gap-2 text-white/40 text-[10px] mt-0.5 sm:mt-1">
+                  <div className="h-px w-4 sm:w-12 bg-gradient-to-r from-transparent to-white/20" />
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <div className="h-px w-4 sm:w-12 bg-gradient-to-l from-transparent to-white/20" />
                 </div>
               </div>
 
               {/* To */}
               <div className="flex flex-col items-center">
-                <div className="avatar w-10 h-10 text-sm" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #10b981, #34d399)" }}>
-                  {getMemberName(settlement.to)[0]?.toUpperCase()}
+                <div className="avatar w-10 h-10 text-sm overflow-hidden border border-white/10" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #10b981, #34d399)" }}>
+                  {getMemberAvatar(settlement.to) ? (
+                    <img src={getMemberAvatar(settlement.to)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    getMemberName(settlement.to)[0]?.toUpperCase()
+                  )}
                 </div>
                 <div className="text-xs text-white/50 mt-1 max-w-[70px] text-center truncate">
                   {getMemberName(settlement.to)}
@@ -213,18 +226,18 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
               {/* Action */}
               <div className="ml-auto">
                 {settlement.settled ? (
-                  <div className="flex items-center gap-1 text-emerald-400 text-sm">
-                    <CheckCircle className="w-4 h-4" />
-                    Done
+                  <div className="flex items-center gap-1 text-emerald-400 text-xs sm:text-sm">
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden min-[450px]:inline">Done</span>
                   </div>
                 ) : (
                   <button
                     onClick={() => markSettled(settlement)}
                     disabled={saving}
-                    className="btn-secondary text-sm px-4 py-2"
+                    className="btn-secondary text-[10px] sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 whitespace-nowrap"
                     id={`settle-btn-${i}`}
                   >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Mark Paid"}
+                    {saving ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" /> : "Paid"}
                   </button>
                 )}
               </div>
@@ -270,13 +283,22 @@ function MemberBalances({ tripId, members }: { tripId: string; members: any[] })
     return m?.users?.full_name ?? m?.users?.email?.split("@")[0] ?? "Unknown";
   };
 
+  const getMemberAvatar = (userId: string) => {
+    const m = members.find((m) => m.user_id === userId);
+    return m?.users?.avatar_url;
+  };
+
   return (
     <div className="space-y-3">
       {Object.entries(balances).map(([userId, balance]) => (
         <div key={userId} className="flex items-center justify-between py-2 border-b border-white/8 last:border-0">
           <div className="flex items-center gap-3">
-            <div className="avatar w-8 h-8 text-xs">
-              {getMemberName(userId)[0]?.toUpperCase()}
+            <div className="avatar w-8 h-8 text-xs overflow-hidden border border-white/10">
+              {getMemberAvatar(userId) ? (
+                <img src={getMemberAvatar(userId)} alt="" className="w-full h-full object-cover" />
+              ) : (
+                getMemberName(userId)[0]?.toUpperCase()
+              )}
             </div>
             <span className="text-sm">{getMemberName(userId)}</span>
           </div>

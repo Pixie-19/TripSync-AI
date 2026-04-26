@@ -104,11 +104,11 @@ export default function DashboardPage() {
       <nav className="relative z-50 pt-6 px-6 max-w-7xl mx-auto mb-12">
         <div className="w-full flex items-center justify-between glass-card rounded-full px-6 py-4 border border-white/10 bg-white/5 backdrop-blur-md">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-dark-900" />
-            </div>
-            <span className="font-display font-semibold text-lg tracking-tight">TripSync</span>
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
+            <MapPin className="w-4 h-4 text-white" />
           </div>
+          <span className="font-display font-bold text-lg tracking-tight">Trip<span className="gradient-text">Sync</span> AI</span>
+        </div>
 
           <div className="flex items-center gap-4">
             <button
@@ -144,21 +144,21 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-16 mt-8"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-12 sm:mb-16 mt-6 sm:mt-8"
         >
           <div>
-            <h1 className="font-display font-medium text-4xl md:text-[2.75rem] mb-3 tracking-wider uppercase text-brand-400">
+            <h1 className="font-display font-medium text-3xl md:text-[2.75rem] mb-2 md:mb-3 tracking-wider uppercase text-brand-400">
               TIME TO TRAVEL, {displayName.split(" ")[0]}
             </h1>
             <p className="text-white/50 text-sm leading-relaxed max-w-lg">
               Manage your trips and upcoming adventures with seamless AI planning.
             </p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => setShowJoin(true)} className="btn-secondary" id="join-trip-btn">
+          <div className="flex flex-wrap gap-3 mt-2 sm:mt-0">
+            <button onClick={() => setShowJoin(true)} className="btn-secondary flex-1 sm:flex-none" id="join-trip-btn">
               <Key className="w-4 h-4" /> Join Trip
             </button>
-            <button onClick={() => setShowCreate(true)} className="btn-primary" id="create-trip-btn">
+            <button onClick={() => setShowCreate(true)} className="btn-primary flex-1 sm:flex-none" id="create-trip-btn">
               <Plus className="w-4 h-4" /> New Trip
             </button>
           </div>
@@ -170,18 +170,18 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-3 gap-4 mb-10"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-10"
           >
             {[
               { icon: <MapPin className="w-5 h-5 text-brand-400" />, value: trips.length, label: "Total Trips", color: "from-brand-500/10 to-brand-600/5 border-brand-500/20" },
               { icon: <Users className="w-5 h-5 text-violet-400" />, value: trips.reduce((s, t) => s + t.num_people, 0), label: "People", color: "from-violet-500/10 to-violet-600/5 border-violet-500/20" },
               { icon: <DollarSign className="w-5 h-5 text-emerald-400" />, value: formatCurrency(trips.reduce((s, t) => s + t.budget, 0)), label: "Total Budget", color: "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20" },
             ].map((s) => (
-              <div key={s.label} className={`glass-card p-5 bg-gradient-to-br ${s.color} border flex items-center gap-5 hover:bg-white/5 transition-colors duration-300`}>
-                <div className="w-12 h-12 rounded-xl bg-dark-800/80 flex items-center justify-center border border-white/5 shadow-lg">{s.icon}</div>
-                <div>
-                  <div className="font-display font-medium text-2xl text-white mb-0.5">{s.value}</div>
-                  <div className="text-white/40 text-[10px] font-medium tracking-widest uppercase">{s.label}</div>
+              <div key={s.label} className={`glass-card p-4 sm:p-5 bg-gradient-to-br ${s.color} border flex items-center gap-4 sm:gap-5 hover:bg-white/5 transition-colors duration-300`}>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-dark-800/80 flex items-center justify-center border border-white/5 shadow-lg flex-shrink-0">{s.icon}</div>
+                <div className="min-w-0">
+                  <div className="font-display font-medium text-xl sm:text-2xl text-white mb-0.5 truncate">{s.value}</div>
+                  <div className="text-white/40 text-[9px] sm:text-[10px] font-medium tracking-widest uppercase truncate">{s.label}</div>
                 </div>
               </div>
             ))}

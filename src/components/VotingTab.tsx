@@ -137,10 +137,10 @@ export default function VotingTab({ tripId, user }: Props) {
           {[1, 2].map((i) => <div key={i} className="skeleton h-40" />)}
         </div>
       ) : votes.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <div className="flex justify-center mb-4"><VoteIcon className="w-12 h-12 text-brand-400" /></div>
-          <h3 className="font-semibold text-lg mb-2">No polls yet</h3>
-          <p className="text-white/40 text-sm">Create a poll to let the group decide!</p>
+        <div className="glass-card p-6 sm:p-12 text-center">
+          <div className="flex justify-center mb-4"><VoteIcon className="w-10 h-10 sm:w-12 sm:h-12 text-brand-400" /></div>
+          <h3 className="font-semibold text-base sm:text-lg mb-2">No polls yet</h3>
+          <p className="text-white/40 text-xs sm:text-sm">Create a poll to let the group decide!</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -159,12 +159,12 @@ export default function VotingTab({ tripId, user }: Props) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: vi * 0.08 }}
-                className="glass-card p-6"
+                className="glass-card p-4 sm:p-6"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h4 className="font-semibold text-lg">{vote.title}</h4>
-                    <p className="text-white/40 text-xs mt-0.5">
+                    <h4 className="font-semibold text-base sm:text-lg">{vote.title}</h4>
+                    <p className="text-white/40 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
                       {totalVotes} vote{totalVotes !== 1 ? "s" : ""} •{" "}
                       {format(new Date(vote.created_at), "MMM d")}
                     </p>

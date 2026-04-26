@@ -160,7 +160,7 @@ export default function TripPage() {
 
       {/* Navbar */}
       <nav className="sticky top-0 z-50 border-b border-white/8 bg-dark-900/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => router.push("/dashboard")}
             className="btn-ghost p-2"
@@ -169,22 +169,22 @@ export default function TripPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center flex-shrink-0">
               <MapPin className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display font-bold">{trip.title}</span>
+            <span className="font-display font-bold truncate text-sm sm:text-base">{trip.title}</span>
           </div>
 
           <button
             onClick={copyInviteCode}
-            className="btn-ghost text-sm gap-2"
+            className="btn-ghost text-xs sm:text-sm gap-1 sm:gap-2 px-2 sm:px-3"
             id="copy-invite-btn"
           >
             {copied ? (
-              <><Check className="w-4 h-4 text-emerald-400" /> Copied!</>
+              <><Check className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" /> <span className="hidden sm:inline">Copied!</span><span className="sm:hidden">OK</span></>
             ) : (
-              <><Copy className="w-4 h-4" /> {trip.invite_code}</>
+              <><Copy className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">{trip.invite_code}</span><span className="sm:hidden">Invite</span></>
             )}
           </button>
         </div>
@@ -200,12 +200,12 @@ export default function TripPage() {
           <div className="flex flex-col lg:flex-row lg:items-center gap-6">
             {/* Trip Info */}
             <div className="flex-1">
-              <div className="flex items-center gap-2 text-white/50 text-sm mb-2">
-                <MapPin className="w-4 h-4 text-brand-400" />
+              <div className="flex items-center gap-2 text-white/50 text-xs sm:text-sm mb-2">
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-brand-400" />
                 {trip.destination}
               </div>
-              <h1 className="font-display font-black text-3xl mb-1">{trip.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-white/50">
+              <h1 className="font-display font-black text-2xl sm:text-3xl mb-1">{trip.title}</h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-white/50">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   {format(new Date(trip.start_date), "MMM d")} – {format(new Date(trip.end_date), "MMM d, yyyy")}
@@ -223,24 +223,24 @@ export default function TripPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 lg:min-w-[400px]">
-              <div className="glass-card p-4 text-center border border-brand-500/20">
-                <div className="text-brand-400 font-bold text-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 lg:min-w-[400px]">
+              <div className="glass-card p-3 sm:p-4 text-center border border-brand-500/20">
+                <div className="text-brand-400 font-bold text-base sm:text-lg">
                   {formatCurrency(trip.budget)}
                 </div>
-                <div className="text-white/40 text-xs">Budget</div>
+                <div className="text-white/40 text-[10px] sm:text-xs uppercase tracking-wider">Budget</div>
               </div>
-              <div className={`glass-card p-4 text-center border ${isOverBudget ? "border-rose-500/30" : "border-emerald-500/20"}`}>
-                <div className={`font-bold text-lg ${isOverBudget ? "text-rose-400" : "text-emerald-400"}`}>
+              <div className={`glass-card p-3 sm:p-4 text-center border ${isOverBudget ? "border-rose-500/30" : "border-emerald-500/20"}`}>
+                <div className={`font-bold text-base sm:text-lg ${isOverBudget ? "text-rose-400" : "text-emerald-400"}`}>
                   {formatCurrency(totalSpent)}
                 </div>
-                <div className="text-white/40 text-xs">Spent</div>
+                <div className="text-white/40 text-[10px] sm:text-xs uppercase tracking-wider">Spent</div>
               </div>
-              <div className="glass-card p-4 text-center border border-violet-500/20">
-                <div className={`font-bold text-lg ${isOverBudget ? "text-rose-400" : "text-violet-400"}`}>
+              <div className="glass-card p-3 sm:p-4 text-center border border-violet-500/20 col-span-2 sm:col-span-1">
+                <div className={`font-bold text-base sm:text-lg ${isOverBudget ? "text-rose-400" : "text-violet-400"}`}>
                   {formatCurrency(Math.abs(trip.budget - totalSpent))}
                 </div>
-                <div className="text-white/40 text-xs">{isOverBudget ? "Over!" : "Left"}</div>
+                <div className="text-white/40 text-[10px] sm:text-xs uppercase tracking-wider">{isOverBudget ? "Over!" : "Remaining"}</div>
               </div>
             </div>
           </div>
@@ -354,6 +354,9 @@ export default function TripPage() {
           )}
         </motion.div>
       </div>
+      
+      {/* Spacer for FABs on mobile */}
+      <div className="h-32 sm:hidden" />
       </div>
 
       {/* Floating: AI Chatbot */}

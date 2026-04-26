@@ -161,6 +161,11 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
     return m?.users?.full_name ?? m?.users?.email?.split("@")[0] ?? "Unknown";
   };
 
+  const getMemberAvatar = (userId: string) => {
+    const m = members.find((m) => m.user_id === userId);
+    return m?.users?.avatar_url;
+  };
+
   const filtered = expenses.filter((e) => {
     if (filterCategory !== "all" && e.category !== filterCategory) return false;
     if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -176,12 +181,12 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
   return (
     <div className="space-y-6">
       {/* Category Summary */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 min-[450px]:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
             onClick={() => setFilterCategory(filterCategory === cat ? "all" : cat)}
-            className={`glass-card p-4 text-center transition-all duration-300 ${
+            className={`glass-card p-3 sm:p-4 text-center transition-all duration-300 ${
               filterCategory === cat ? "border-brand-400 shadow-[0_0_20px_rgba(34,211,238,0.2)] bg-brand-500/10" : "hover:border-white/20 hover:bg-white/5"
             }`}
           >
@@ -245,9 +250,9 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass-card-hover p-5 flex items-center gap-5 group transition-all duration-300"
+                className="glass-card-hover p-3 sm:p-5 flex items-center gap-3 sm:gap-5 group transition-all duration-300"
               >
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl border border-white/5 shadow-inner bg-dark-800/80`}>
+                <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center border border-white/5 shadow-inner bg-dark-800/80 flex-shrink-0`}>
                   {(() => {
                     const Icon = getCategoryIcon(expense.category);
                     // Use neon highlights based on who paid
@@ -257,21 +262,21 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="font-display font-medium text-lg text-white truncate mb-1">{expense.title}</div>
-                  <div className="text-xs text-white/40 flex items-center gap-2">
+                  <div className="font-display font-medium text-base sm:text-lg text-white truncate mb-0.5 sm:mb-1">{expense.title}</div>
+                  <div className="text-[10px] sm:text-xs text-white/40 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <span className="text-white/60">Paid by {getMemberName(expense.paid_by)}</span>
-                    <span>•</span>
+                    <span className="hidden min-[400px]:inline">•</span>
                     <span>Split {expense.split_among.length} ways</span>
-                    <span>•</span>
+                    <span className="hidden min-[400px]:inline">•</span>
                     <span className="uppercase tracking-wider">{format(new Date(expense.created_at), "MMM d")}</span>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <div className="font-display font-medium text-xl text-white mb-0.5 drop-shadow-md">
+                <div className="text-right flex-shrink-0">
+                  <div className="font-display font-medium text-base sm:text-xl text-white mb-0.5 drop-shadow-md">
                     {formatCurrency(expense.amount)}
                   </div>
-                  <div className="text-[10px] uppercase tracking-widest text-brand-400">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-widest text-brand-400">
                     {formatCurrency(expense.amount / expense.split_among.length)} each
                   </div>
                 </div>
@@ -402,8 +407,12 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                             </svg>
                           )}
                         </div>
-                        <div className="avatar w-7 h-7 text-xs flex-shrink-0">
-                          {getMemberName(m.user_id)[0]?.toUpperCase()}
+                        <div className="avatar w-7 h-7 text-xs flex-shrink-0 overflow-hidden border border-white/10">
+                          {getMemberAvatar(m.user_id) ? (
+                            <img src={getMemberAvatar(m.user_id)} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            getMemberName(m.user_id)[0]?.toUpperCase()
+                          )}
                         </div>
                         <span className="text-sm">{getMemberName(m.user_id)}</span>
                         {m.user_id === user?.id && (
