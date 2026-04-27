@@ -26,7 +26,7 @@ interface ProfileStats {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const [stats, setStats] = useState<ProfileStats>({ totalTrips: 0, totalSpent: 0, totalBudget: 0, countries: [] });
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -70,6 +70,10 @@ export default function ProfilePage() {
         await updateProfile(auth.currentUser, { displayName });
       }
       await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
+      // Firebase's onAuthStateChanged doesn't fire on profile-only changes,
+      // so push the fresh snapshot into AuthContext ourselves — otherwise
+      // the dashboard navbar keeps the stale name until a hard reload.
+      refreshUser();
       toast.success("Profile updated!");
       setEditing(false);
     } catch (e) {
