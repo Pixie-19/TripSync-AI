@@ -27,12 +27,13 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-// Errors that mean the popup never produced a result (blocked, dismissed, or
-// duplicated). These should transparently fall back to a full-page redirect,
-// which Safari/Mac browsers handle far more reliably than popups.
+// Errors where the popup couldn't even open / function — these transparently
+// fall back to a full-page redirect (Safari/Mac handle redirects far more
+// reliably). `popup-closed-by-user` is intentionally NOT here: if the user
+// closed the popup themselves, hijacking them into a redirect is hostile UX.
+// That code is re-thrown so the auth page can surface "Sign-in cancelled".
 const POPUP_FALLBACK_CODES = new Set([
   "auth/popup-blocked",
-  "auth/popup-closed-by-user",
   "auth/cancelled-popup-request",
   "auth/operation-not-supported-in-this-environment",
   "auth/web-storage-unsupported",

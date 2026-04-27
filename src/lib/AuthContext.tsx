@@ -33,23 +33,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setLoading(false);
 
-        // ts_auth cookie is read by middleware.ts to gate protected routes.
-        document.cookie = `ts_auth=${firebaseUser.uid}; path=/; max-age=86400; SameSite=Lax`;
+        // ts_auth is a presence-only cookie middleware uses for redirect
+        // UX — it carries the raw Firebase UID, which is forgeable and is
+        // not an auth verifier. Real authorization is enforced at the data
+        // layer (Firebase ID tokens / Supabase RLS).
+        const secure = typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = `ts_auth=${firebaseUser.uid}; path=/; max-age=86400; SameSite=Lax${secure}`;
 
         // Mirror the Firebase user into public.users so trip / expense FKs
-        // (which reference public.users(id) as TEXT) resolve. If a row with
-        // this email already exists from the legacy email/password era, this
-        // upsert will fail silently on the email UNIQUE constraint — those
-        // accounts must keep using their old credentials path, which no
-        // longer exists. By design per the user's directive: keep old data,
-        // do not auto-migrate.
-        await supabase.from("users").upsert({
+        // (which reference public.users(id) as TEXT) resolve. Legacy
+        // email/password rows with the same email will trip the
+        // UNIQUE(email) constraint — log it so a stuck teammate has a
+        // debug signal instead of a silently broken dashboard.
+        const { error: upsertError } = await supabase.from("users").upsert({
           id: firebaseUser.uid,
           email: firebaseUser.email ?? "",
           full_name: firebaseUser.displayName ?? null,
           avatar_url: firebaseUser.photoURL ?? null,
           updated_at: new Date().toISOString(),
         });
+        if (upsertError) {
+          console.warn("[AuthContext] public.users upsert failed:", upsertError);
+        }
       } else {
         document.cookie = "ts_auth=; path=/; max-age=0";
         setUser(null);

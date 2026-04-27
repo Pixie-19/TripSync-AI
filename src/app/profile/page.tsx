@@ -61,8 +61,15 @@ export default function ProfilePage() {
     if (!user) return;
     setSaving(true);
     try {
-      await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
-      await supabase.auth.updateUser({ data: { full_name: displayName } });
+      const { error } = await supabase
+        .from("users")
+        .update({ full_name: displayName, updated_at: new Date().toISOString() })
+        .eq("id", user.id);
+      if (error) throw error;
+      // No supabase.auth.updateUser call: auth is Firebase-only, so the
+      // Supabase auth namespace has no session and that call would throw
+      // AuthSessionMissingError, masking a successful DB update with a
+      // misleading "Failed to update profile" toast.
       toast.success("Profile updated!");
       setEditing(false);
     } catch {
