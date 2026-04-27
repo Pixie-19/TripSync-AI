@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import { X, Key, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -16,13 +15,20 @@ export default function JoinTripModal({ userId, onClose, onJoined }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const handleJoin = async () => {
     if (!code.trim()) return;
     setLoading(true);
     setError(null);
 
     try {
-      // Find trip by invite code
       const { data: trip, error: tripErr } = await supabase
         .from("trips")
         .select("id, title, num_people")
@@ -34,7 +40,6 @@ export default function JoinTripModal({ userId, onClose, onJoined }: Props) {
         return;
       }
 
-      // Check if already a member
       const { data: existing } = await supabase
         .from("trip_members")
         .select("id")
@@ -47,7 +52,6 @@ export default function JoinTripModal({ userId, onClose, onJoined }: Props) {
         return;
       }
 
-      // Check member count
       const { count } = await supabase
         .from("trip_members")
         .select("id", { count: "exact" })
@@ -58,7 +62,6 @@ export default function JoinTripModal({ userId, onClose, onJoined }: Props) {
         return;
       }
 
-      // Join the trip
       const { error: joinErr } = await supabase.from("trip_members").insert({
         trip_id: trip.id,
         user_id: userId,
@@ -75,72 +78,68 @@ export default function JoinTripModal({ userId, onClose, onJoined }: Props) {
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div onClick={onClose} className="absolute inset-0 modal-backdrop" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="join-trip-heading"
+        className="relative modal-panel w-full max-w-sm"
+      >
+        <header className="flex items-center justify-between px-6 py-4 border-b border-subtle">
+          <h2 id="join-trip-heading" className="font-display text-2xl text-ink" style={{ fontWeight: 500 }}>
+            Join a trip
+          </h2>
+          <button onClick={onClose} className="btn-icon" aria-label="Close">
+            <X className="w-4 h-4" />
+          </button>
+        </header>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative glass-card w-full max-w-sm"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-white/8">
-            <h2 className="font-display font-bold text-xl">Join a Trip</h2>
-            <button onClick={onClose} className="btn-ghost p-2">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="p-6 space-y-4">
-            <div className="text-center py-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500/20 to-violet-500/20 flex items-center justify-center mx-auto mb-4">
-                <Key className="w-8 h-8 text-brand-400" />
-              </div>
-              <p className="text-white/50 text-sm">
-                Enter the 8-character invite code shared by your trip organizer
-              </p>
+        <div className="px-6 py-5 space-y-4">
+          <div className="text-center pt-2">
+            <div className="w-14 h-14 rounded-md bg-highlight-soft flex items-center justify-center mx-auto mb-4">
+              <Key className="w-6 h-6 text-highlight" strokeWidth={1.5} />
             </div>
-
-            <input
-              id="invite-code-input"
-              className="input-field text-center text-2xl font-mono tracking-widest uppercase"
-              placeholder="XXXXXXXX"
-              maxLength={8}
-              value={code}
-              onChange={(e) => {
-                setCode(e.target.value.toUpperCase());
-                setError(null);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-            />
-
-            {error && (
-              <div className="px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm text-center">
-                {error}
-              </div>
-            )}
+            <p className="text-ink-muted text-sm">
+              Enter the 8-character invite code from your trip organizer.
+            </p>
           </div>
 
-          <div className="flex gap-3 p-6 border-t border-white/8">
-            <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-            <button
-              onClick={handleJoin}
-              disabled={loading || code.length < 6}
-              className="btn-primary flex-1"
-              id="join-trip-submit"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Join Trip"}
-            </button>
-          </div>
-        </motion.div>
+          <input
+            id="invite-code-input"
+            className="input-field text-center font-mono text-xl tracking-widest uppercase tnum"
+            placeholder="XXXXXXXX"
+            maxLength={8}
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value.toUpperCase());
+              setError(null);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+            autoFocus
+          />
+
+          {error && (
+            <div className="px-4 py-3 rounded-lg border border-danger bg-danger-soft text-danger text-sm text-center">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <footer className="flex gap-2 px-6 py-4 border-t border-subtle">
+          <button onClick={onClose} className="btn-secondary flex-1">
+            Cancel
+          </button>
+          <button
+            onClick={handleJoin}
+            disabled={loading || code.length < 6}
+            className="btn-primary flex-1"
+            id="join-trip-submit"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Join trip"}
+          </button>
+        </footer>
       </div>
-    </AnimatePresence>
+    </div>
   );
 }
