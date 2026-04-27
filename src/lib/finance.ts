@@ -51,38 +51,51 @@ export async function recalculateBalances(tripId: string) {
       netBalances[s.to_user_id] = (netBalances[s.to_user_id] ?? 0) - s.amount;
     });
 
-    // 4. Resolve debts (simplified bipartite matching)
+    // 4. Resolve debts (simplified bipartite matching).
+    // Work in integer paise so float drift can't leave half-cent residuals
+    // that prevent index advancement (potential infinite loop) or skip a
+    // valid pairing. We round once when entering this stage; all matching
+    // arithmetic is integer.
+    const toPaise = (rupees: number) => Math.round(rupees * 100);
+
     const debtors = Object.entries(netBalances)
-      .filter(([_, bal]) => bal < -0.01)
-      .map(([id, bal]) => ({ id, bal: Math.abs(bal) }));
-    
+      .filter(([, bal]) => bal < -0.01)
+      .map(([id, bal]) => ({ id, paise: toPaise(Math.abs(bal)) }));
+
     const creditors = Object.entries(netBalances)
-      .filter(([_, bal]) => bal > 0.01)
-      .map(([id, bal]) => ({ id, bal }));
+      .filter(([, bal]) => bal > 0.01)
+      .map(([id, bal]) => ({ id, paise: toPaise(bal) }));
 
     const newBalances: { trip_id: string; from_user_id: string; to_user_id: string; amount: number; status: string }[] = [];
-    
+
     let dIdx = 0;
     let cIdx = 0;
 
     while (dIdx < debtors.length && cIdx < creditors.length) {
       const d = debtors[dIdx];
       const c = creditors[cIdx];
-      const amount = Math.min(d.bal, c.bal);
+      const matchPaise = Math.min(d.paise, c.paise);
+
+      if (matchPaise <= 0) {
+        // Exhausted side(s); advance whichever is empty to avoid spinning.
+        if (d.paise <= 0) dIdx++;
+        if (c.paise <= 0) cIdx++;
+        continue;
+      }
 
       newBalances.push({
         trip_id: tripId,
         from_user_id: d.id,
         to_user_id: c.id,
-        amount: parseFloat(amount.toFixed(2)),
+        amount: matchPaise / 100,
         status: "pending",
       });
 
-      d.bal -= amount;
-      c.bal -= amount;
+      d.paise -= matchPaise;
+      c.paise -= matchPaise;
 
-      if (d.bal < 0.01) dIdx++;
-      if (c.bal < 0.01) cIdx++;
+      if (d.paise <= 0) dIdx++;
+      if (c.paise <= 0) cIdx++;
     }
 
     // 5. Update Database (Atomic Wipe & Replace)

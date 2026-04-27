@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { generateBudgetInsights } from "@/lib/ai";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
-    
+
     if (!body) {
       return NextResponse.json({ data: null, error: "Invalid request body" }, { status: 400 });
     }
@@ -19,6 +20,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { data: null, error: "AI service configuration missing." },
         { status: 500 }
+      );
+    }
+
+    // Rate-limit so a misbehaving (or unauth'd) client can't burn the
+    // Mistral quota by hammering this endpoint. Same scheme as /api/chat.
+    const rateKey = body.userId || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anonymous";
+    const rateCheck = checkRateLimit(rateKey);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { data: null, error: rateCheck.reason, rateLimited: true, remaining: rateCheck.remaining },
+        { status: 429 }
       );
     }
 
