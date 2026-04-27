@@ -1,47 +1,49 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/Footer";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const themeBootstrap = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme='dark';}})();`;
 
 export const metadata: Metadata = {
-  title: "TripSync AI – Smart Group Travel Planner",
+  title: "TripSync AI – Plan together. Spend smarter.",
   description:
-    "AI-powered group travel platform. Plan trips, split expenses, and get smart budget insights – all in real-time.",
+    "An editorial planner for groups: AI itineraries, fair expense splits, and clean settlement — all in real-time.",
   keywords: ["travel planner", "group travel", "expense splitting", "AI itinerary", "trip planning"],
   openGraph: {
     title: "TripSync AI",
-    description: "AI-powered group travel platform",
+    description: "AI-powered group travel planner",
     type: "website",
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
-      <body className="font-sans bg-dark-900 text-white antialiased flex flex-col min-h-screen" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-theme="dark">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
+      <body className="font-sans antialiased flex flex-col min-h-screen" suppressHydrationWarning>
         <AuthProvider>
-          <main className="flex-grow">
+          <div className="flex-grow flex flex-col">
             {children}
-          </main>
+          </div>
           <Footer />
         </AuthProvider>
         <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              background: "#1e293b",
-              color: "#f8fafc",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "var(--surface-elevated)",
+              color: "var(--ink-primary)",
+              border: "1px solid var(--border-subtle)",
               borderRadius: "12px",
               fontSize: "14px",
+              fontFamily: "var(--font-sans)",
             },
-            success: { iconTheme: { primary: "#10b981", secondary: "#1e293b" } },
-            error: { iconTheme: { primary: "#f43f5e", secondary: "#1e293b" } },
+            success: { iconTheme: { primary: "var(--success)", secondary: "var(--surface-elevated)" } },
+            error: { iconTheme: { primary: "var(--danger)", secondary: "var(--surface-elevated)" } },
           }}
         />
       </body>
