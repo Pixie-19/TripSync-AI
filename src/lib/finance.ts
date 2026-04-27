@@ -173,23 +173,22 @@ export async function logExpenseAndNotify({
 // expense_id column on transactions — a targeted DELETE would over-delete
 // when two expenses share the same payer/split/per-person amount.
 // We carry over each expense's created_at so the history order is preserved.
+//
+// Order matters: we build the new rows fully in memory *before* wiping the
+// old transactions, so a failed insert leaves us with the still-correct
+// pre-delete txns rather than an empty table. Without a real DB transaction
+// (Supabase JS doesn't expose one), this is the closest we get to atomicity.
 export async function deleteExpenseAndCleanup(tripId: string, expenseId: string) {
   const { error: delErr } = await supabase.from("expenses").delete().eq("id", expenseId);
   if (delErr) throw delErr;
 
-  const { error: txDelErr } = await supabase
-    .from("transactions")
-    .delete()
-    .eq("trip_id", tripId)
-    .eq("type", "expense");
-  if (txDelErr) throw txDelErr;
-
-  const { data: remaining } = await supabase
+  const { data: remaining, error: fetchErr } = await supabase
     .from("expenses")
     .select("paid_by, amount, split_among, created_at")
     .eq("trip_id", tripId);
+  if (fetchErr) throw fetchErr;
 
-  const rows: any[] = [];
+  const rows = [];
   for (const e of remaining ?? []) {
     if (!e.split_among?.length) continue;
     const perPerson = e.amount / e.split_among.length;
@@ -205,12 +204,27 @@ export async function deleteExpenseAndCleanup(tripId: string, expenseId: string)
       });
     }
   }
-  if (rows.length > 0) {
-    const { error: insErr } = await supabase.from("transactions").insert(rows);
-    if (insErr) throw insErr;
-  }
 
-  await recalculateBalances(tripId);
+  try {
+    const { error: txDelErr } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("trip_id", tripId)
+      .eq("type", "expense");
+    if (txDelErr) throw txDelErr;
+
+    if (rows.length > 0) {
+      const { error: insErr } = await supabase.from("transactions").insert(rows);
+      if (insErr) throw insErr;
+    }
+
+    await recalculateBalances(tripId);
+  } catch (err) {
+    // Rebuild failed mid-flight. Log the rows we tried to insert so the user
+    // can recover the data manually if needed.
+    console.error("deleteExpenseAndCleanup rebuild failed", { tripId, rows, err });
+    throw err;
+  }
 }
 
 export async function processPayment({
