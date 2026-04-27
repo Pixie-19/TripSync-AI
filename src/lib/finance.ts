@@ -168,6 +168,51 @@ export async function logExpenseAndNotify({
   }
 }
 
+// Deletes an expense and rebuilds derived state. We rebuild rather than
+// surgically deleting matching transactions because the schema has no
+// expense_id column on transactions — a targeted DELETE would over-delete
+// when two expenses share the same payer/split/per-person amount.
+// We carry over each expense's created_at so the history order is preserved.
+export async function deleteExpenseAndCleanup(tripId: string, expenseId: string) {
+  const { error: delErr } = await supabase.from("expenses").delete().eq("id", expenseId);
+  if (delErr) throw delErr;
+
+  const { error: txDelErr } = await supabase
+    .from("transactions")
+    .delete()
+    .eq("trip_id", tripId)
+    .eq("type", "expense");
+  if (txDelErr) throw txDelErr;
+
+  const { data: remaining } = await supabase
+    .from("expenses")
+    .select("paid_by, amount, split_among, created_at")
+    .eq("trip_id", tripId);
+
+  const rows: any[] = [];
+  for (const e of remaining ?? []) {
+    if (!e.split_among?.length) continue;
+    const perPerson = e.amount / e.split_among.length;
+    for (const uid of e.split_among) {
+      if (uid === e.paid_by) continue;
+      rows.push({
+        trip_id: tripId,
+        from_user_id: uid,
+        to_user_id: e.paid_by,
+        amount: perPerson,
+        type: "expense",
+        created_at: e.created_at,
+      });
+    }
+  }
+  if (rows.length > 0) {
+    const { error: insErr } = await supabase.from("transactions").insert(rows);
+    if (insErr) throw insErr;
+  }
+
+  await recalculateBalances(tripId);
+}
+
 export async function processPayment({
   tripId,
   payerId,
