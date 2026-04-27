@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
+import { signOutEverywhere } from "@/lib/authActions";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -100,7 +101,7 @@ export default function ProfilePage() {
           <span className="font-display font-bold">My Profile</span>
           <div className="ml-auto">
             <button
-              onClick={async () => { await supabase.auth.signOut(); router.replace("/auth"); }}
+              onClick={async () => { await signOutEverywhere(); router.replace("/auth"); }}
               className="btn-ghost text-sm text-rose-400"
             >
               Sign Out
