@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User,
@@ -25,10 +26,32 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-// Sign in with Google popup
-export async function signInWithGoogle(): Promise<User> {
-  const result = await signInWithPopup(auth, googleProvider);
-  return result.user;
+// Sign in with Google. Tries the popup flow first; on browsers that block
+// it (Mac Safari, Chrome with strict popup settings, mobile in-app
+// webviews) we fall back to a full-page redirect. After the redirect
+// round trip, AuthContext's onAuthStateChanged picks up the new session
+// and the /auth page's listener routes the user to /dashboard.
+//
+// We only fall back on `auth/popup-blocked` and the env-not-supported
+// code — NOT on `auth/popup-closed-by-user` or `auth/cancelled-popup-
+// request`, which mean the user themselves dismissed the popup. Those
+// should bubble up so the page can show "sign-in cancelled" instead of
+// silently triggering an unexpected full-page redirect.
+export async function signInWithGoogle(): Promise<User | null> {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (err: any) {
+    const popupBlocked =
+      err?.code === "auth/popup-blocked" ||
+      err?.code === "auth/operation-not-supported-in-this-environment";
+    if (popupBlocked) {
+      console.info("[auth] popup blocked, falling back to redirect", err.code);
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw err;
+  }
 }
 
 // Sign out
