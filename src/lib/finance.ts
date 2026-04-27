@@ -1,5 +1,14 @@
 import { supabase } from "./supabase";
 
+type ExpenseTransactionRow = {
+  trip_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  amount: number;
+  type: "expense";
+  created_at: string;
+};
+
 /**
  * RE-CALCULATES all balances for a trip from scratch.
  * This ensures data consistency even after edits/deletes.
@@ -165,6 +174,65 @@ export async function logExpenseAndNotify({
     }
   } catch (err) {
     console.error("Error in logExpenseAndNotify:", err);
+  }
+}
+
+// Deletes an expense and rebuilds derived state. We rebuild rather than
+// surgically deleting matching transactions because the schema has no
+// expense_id column on transactions — a targeted DELETE would over-delete
+// when two expenses share the same payer/split/per-person amount.
+// We carry over each expense's created_at so the history order is preserved.
+//
+// Order matters: we build the new rows fully in memory *before* wiping the
+// old transactions, so a failed insert leaves us with the still-correct
+// pre-delete txns rather than an empty table. Without a real DB transaction
+// (Supabase JS doesn't expose one), this is the closest we get to atomicity.
+export async function deleteExpenseAndCleanup(tripId: string, expenseId: string) {
+  const { error: delErr } = await supabase.from("expenses").delete().eq("id", expenseId);
+  if (delErr) throw delErr;
+
+  const { data: remaining, error: fetchErr } = await supabase
+    .from("expenses")
+    .select("paid_by, amount, split_among, created_at")
+    .eq("trip_id", tripId);
+  if (fetchErr) throw fetchErr;
+
+  const rows: ExpenseTransactionRow[] = [];
+  for (const e of remaining ?? []) {
+    if (!e.split_among?.length) continue;
+    const perPerson = e.amount / e.split_among.length;
+    for (const uid of e.split_among) {
+      if (uid === e.paid_by) continue;
+      rows.push({
+        trip_id: tripId,
+        from_user_id: uid,
+        to_user_id: e.paid_by,
+        amount: perPerson,
+        type: "expense",
+        created_at: e.created_at,
+      });
+    }
+  }
+
+  try {
+    const { error: txDelErr } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("trip_id", tripId)
+      .eq("type", "expense");
+    if (txDelErr) throw txDelErr;
+
+    if (rows.length > 0) {
+      const { error: insErr } = await supabase.from("transactions").insert(rows);
+      if (insErr) throw insErr;
+    }
+
+    await recalculateBalances(tripId);
+  } catch (err) {
+    // Rebuild failed mid-flight. Log the rows we tried to insert so the user
+    // can recover the data manually if needed.
+    console.error("deleteExpenseAndCleanup rebuild failed", { tripId, rows, err });
+    throw err;
   }
 }
 

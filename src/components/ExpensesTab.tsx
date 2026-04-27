@@ -21,7 +21,8 @@ import {
 import { format } from "date-fns";
 import { AppUser } from "@/lib/types";
 import AutoDetectExpense from "@/components/AutoDetectExpense";
-import { logExpenseAndNotify, recalculateBalances } from "@/lib/finance";
+import { logExpenseAndNotify, deleteExpenseAndCleanup } from "@/lib/finance";
+import toast from "react-hot-toast";
 
 
 const CATEGORIES = ["food", "transport", "stay", "activities", "shopping", "other"] as const;
@@ -60,6 +61,8 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
   });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchExpenses = useCallback(async () => {
     const { data } = await supabase
@@ -85,6 +88,17 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
 
     return () => { supabase.removeChannel(channel); };
   }, [tripId, fetchExpenses, onExpenseChange]);
+
+  // ESC closes the delete confirmation modal (but not while a delete is in
+  // flight — we don't want a stray keypress to abandon a half-finished op).
+  useEffect(() => {
+    if (!confirmDeleteId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !deleting) setConfirmDeleteId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmDeleteId, deleting]);
 
   // Auto-categorize when title changes
   const handleTitleChange = (title: string) => {
@@ -145,6 +159,11 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
         expenseTitle: form.title,
       });
 
+      // Refresh now instead of waiting for realtime — channel can lag a few
+      // seconds, and the user expects their own write to appear immediately.
+      await fetchExpenses();
+      onExpenseChange();
+
       setShowAdd(false);
       setForm({
         title: "",
@@ -161,11 +180,20 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
     }
   };
 
-  const deleteExpense = async (id: string) => {
-    const { error } = await supabase.from("expenses").delete().eq("id", id);
-    if (!error) {
-      await recalculateBalances(tripId);
-      onExpenseChange(); // Refresh total stats
+  const performDelete = async () => {
+    if (!confirmDeleteId) return;
+    setDeleting(true);
+    try {
+      await deleteExpenseAndCleanup(tripId, confirmDeleteId);
+      await fetchExpenses();
+      onExpenseChange();
+      toast.success("Expense deleted");
+      setConfirmDeleteId(null);
+    } catch (err: any) {
+      console.error("performDelete failed", { expenseId: confirmDeleteId, err });
+      toast.error(`Failed to delete expense: ${err?.message ?? err}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -294,14 +322,13 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                   </div>
                 </div>
 
-                {expense.paid_by === user?.id && (
-                  <button
-                    onClick={() => deleteExpense(expense.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-2 text-rose-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <button
+                  onClick={() => setConfirmDeleteId(expense.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-2 text-rose-400"
+                  aria-label={`Delete ${expense.title}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </motion.div>
             ))}
           </div>
@@ -469,6 +496,75 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                   id="save-expense-btn"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Expense"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {confirmDeleteId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !deleting && setConfirmDeleteId(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-expense-heading"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative glass-card w-full max-w-sm"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center flex-shrink-0">
+                    <Trash2 className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <h3 id="delete-expense-heading" className="font-display font-bold text-lg">Delete expense?</h3>
+                </div>
+                {(() => {
+                  const target = expenses.find((e) => e.id === confirmDeleteId);
+                  if (!target) return null;
+                  const isOwn = target.paid_by === user?.id;
+                  return (
+                    <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="font-semibold text-white truncate">{target.title}</span>
+                        <span className="text-brand-400 font-display text-sm flex-shrink-0">{formatCurrency(target.amount)}</span>
+                      </div>
+                      <div className="text-xs text-white/50">
+                        Paid by {isOwn ? "you" : getMemberName(target.paid_by)}
+                      </div>
+                    </div>
+                  );
+                })()}
+                <p className="text-sm text-white/60">
+                  This will remove the expense for everyone in the trip and recalculate balances. This can&apos;t be undone.
+                </p>
+              </div>
+              <div className="flex gap-3 p-6 pt-0">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  disabled={deleting}
+                  autoFocus
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={performDelete}
+                  disabled={deleting}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
                 </button>
               </div>
             </motion.div>

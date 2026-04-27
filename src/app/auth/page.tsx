@@ -5,114 +5,59 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Mail, Lock, Eye, EyeOff, Loader2, Zap, AlertCircle } from "lucide-react";
+import { MapPin, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signInWithGoogle, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // If already signed in → go to dashboard
+  // If already signed in (via either provider, in case any legacy
+  // Supabase session is still floating around) → go to dashboard.
   useEffect(() => {
     const timer = setTimeout(() => setChecking(false), 2000);
-    
-    // Check Supabase session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         clearTimeout(timer);
         router.replace("/dashboard");
       }
     });
 
-    // Check Firebase session (for Google Login fallback)
     const unsubFirebase = onAuthStateChanged(auth, (user) => {
       if (user) {
         clearTimeout(timer);
         router.replace("/dashboard");
       } else {
-        // Only stop checking if neither has a user
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (!session?.user) setChecking(false);
         });
       }
     });
 
-    return () => { 
-      clearTimeout(timer); 
+    return () => {
+      clearTimeout(timer);
       subscription.unsubscribe();
       unsubFirebase();
     };
   }, [router]);
 
-  // ── Google Sign-In (using Firebase as bridge) ────────
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);
     try {
-      // Use Firebase for Google Sign-In since it's already configured
+      // Navigation is handled by the onAuthStateChanged listener above —
+      // calling router.replace here too caused a duplicate transition.
       await signInWithGoogle();
-      router.replace("/dashboard");
     } catch (e: any) {
       setError(e.message || "Google sign-in failed.");
       setGoogleLoading(false);
     }
   };
-
-  // ── Email Sign-In / Sign-Up ─────────────────────────
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name.trim() }
-          }
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        if (error) throw error;
-      }
-      router.replace("/dashboard");
-    } catch (e: any) {
-      setError(e.message || "Authentication failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Convert Firebase error codes to human-readable messages
-  function friendlyError(code: string): string {
-    const map: Record<string, string> = {
-      "auth/user-not-found": "No account found with this email.",
-      "auth/wrong-password": "Incorrect password. Try again.",
-      "auth/invalid-credential": "Invalid email or password.",
-      "auth/email-already-in-use": "An account already exists with this email.",
-      "auth/weak-password": "Password must be at least 6 characters.",
-      "auth/invalid-email": "Please enter a valid email address.",
-      "auth/too-many-requests": "Too many attempts. Please wait and try again.",
-      "auth/network-request-failed": "Network error. Check your connection.",
-      "auth/popup-blocked": "Popup was blocked. Allow popups for this site.",
-    };
-    return map[code] ?? "Something went wrong. Please try again.";
-  }
 
   if (checking) {
     return (
@@ -159,21 +104,9 @@ export default function AuthPage() {
           transition={{ delay: 0.1 }}
           className="glass-card p-8"
         >
-          {/* Mode toggle */}
-          <div className="flex gap-1 p-1 glass-card rounded-xl mb-6">
-            {(["signin", "signup"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(null); }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                  mode === m
-                    ? "bg-gradient-to-r from-brand-600 to-violet-600 text-white"
-                    : "text-white/50 hover:text-white"
-                }`}
-              >
-                {m === "signin" ? "Sign In" : "Sign Up"}
-              </button>
-            ))}
+          <div className="text-center mb-6">
+            <h2 className="font-display font-bold text-xl mb-1">Welcome</h2>
+            <p className="text-white/50 text-sm">Sign in or sign up with Google to continue.</p>
           </div>
 
           {/* Google Sign-In Button */}
@@ -181,7 +114,7 @@ export default function AuthPage() {
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
             id="google-signin-btn"
-            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/25 transition-all duration-200 mb-5 group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/25 transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {googleLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-white/60" />
@@ -198,105 +131,20 @@ export default function AuthPage() {
             </span>
           </button>
 
-          {/* Divider */}
-          <div className="relative flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="text-white/30 text-xs">or with email</span>
-            <div className="flex-1 h-px bg-white/10" />
-          </div>
-
-          {/* Email Form */}
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            <AnimatePresence>
-              {mode === "signup" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <label className="text-sm text-white/60 mb-1.5 block">Full Name</label>
-                  <input
-                    id="signup-name"
-                    type="text"
-                    className="input-field"
-                    placeholder="Riya Sharma"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div>
-              <label className="text-sm text-white/60 mb-1.5 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input
-                  id="auth-email"
-                  type="email"
-                  required
-                  className="input-field !pl-10"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-white/60 mb-1.5 block">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  minLength={6}
-                  className="input-field !pl-10 !pr-10"
-                  placeholder={mode === "signup" ? "Min. 6 characters" : "Your password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Error */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="flex items-start gap-2 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm"
-                >
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full justify-center py-3.5"
-              id="email-auth-submit"
-            >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> {mode === "signup" ? "Creating account..." : "Signing in..."}</>
-              ) : (
-                mode === "signup" ? "Create Account" : "Sign In"
-              )}
-            </button>
-          </form>
+          {/* Error */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mt-5 flex items-start gap-2 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm"
+              >
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <p className="text-center text-white/25 text-xs mt-6">

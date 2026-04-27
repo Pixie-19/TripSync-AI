@@ -1,15 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { auth, onAuthStateChanged } from "@/lib/firebase";
 
 interface AuthContextType {
   user: any | null;
   loading: boolean;
+  refreshUser: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, refreshUser: () => {} });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
@@ -88,8 +89,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Firebase's onAuthStateChanged does NOT fire on profile-only updates
+  // (displayName / photoURL), so callers that mutate the Firebase user via
+  // updateProfile must invoke this to push the new snapshot into context —
+  // otherwise consumers like the dashboard keep showing the old name until
+  // a full reload re-runs the listener on init.
+  const refreshUser = useCallback(() => {
+    const fbUser = auth.currentUser;
+    if (!fbUser) return;
+    setUser({
+      id: fbUser.uid,
+      email: fbUser.email,
+      user_metadata: {
+        full_name: fbUser.displayName,
+        avatar_url: fbUser.photoURL,
+      },
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

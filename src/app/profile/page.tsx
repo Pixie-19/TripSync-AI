@@ -10,7 +10,10 @@ import {
   Loader2, Camera, Calendar, TrendingUp, ShieldCheck
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { auth } from "@/lib/firebase";
+import { updateProfile } from "firebase/auth";
 import { useAuth } from "@/lib/AuthContext";
+import { signOutEverywhere } from "@/lib/authActions";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -23,7 +26,7 @@ interface ProfileStats {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const [stats, setStats] = useState<ProfileStats>({ totalTrips: 0, totalSpent: 0, totalBudget: 0, countries: [] });
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -60,11 +63,21 @@ export default function ProfilePage() {
     if (!user) return;
     setSaving(true);
     try {
+      // Firebase is the source of truth — AuthContext re-reads displayName on
+      // next load and re-upserts it to the DB, otherwise the upsert clobbers
+      // any DB-only update with the stale Google displayName.
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName });
+      }
       await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
-      await supabase.auth.updateUser({ data: { full_name: displayName } });
+      // Firebase's onAuthStateChanged doesn't fire on profile-only changes,
+      // so push the fresh snapshot into AuthContext ourselves — otherwise
+      // the dashboard navbar keeps the stale name until a hard reload.
+      refreshUser();
       toast.success("Profile updated!");
       setEditing(false);
-    } catch {
+    } catch (e) {
+      console.error("profile handleSave failed", { userId: user.id, e });
       toast.error("Failed to update profile");
     } finally {
       setSaving(false);
@@ -100,7 +113,7 @@ export default function ProfilePage() {
           <span className="font-display font-bold">My Profile</span>
           <div className="ml-auto">
             <button
-              onClick={async () => { await supabase.auth.signOut(); router.replace("/auth"); }}
+              onClick={async () => { await signOutEverywhere(); router.replace("/auth"); }}
               className="btn-ghost text-sm text-rose-400"
             >
               Sign Out

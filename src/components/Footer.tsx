@@ -33,13 +33,20 @@ export default function Footer() {
 
   const navLinks = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Trips", href: "/dashboard" },
-    { name: "Expenses", href: "/dashboard" },
-    { name: "Profile", href: "/dashboard" },
+    { name: "Trips", href: "/dashboard#trips" },
+    { name: "Expenses", href: "/dashboard#expenses" },
+    { name: "Profile", href: "/profile" },
+  ];
+
+  const repoUrl = "https://github.com/Pixie-19/TripSync-AI";
+  const legalLinks = [
+    { name: "Terms", href: `${repoUrl}#terms` },
+    { name: "Privacy", href: `${repoUrl}#privacy` },
+    { name: "Security", href: `${repoUrl}#security` },
   ];
 
   return (
-    <footer className="relative z-10 mt-20 overflow-hidden">
+    <footer className="relative z-10 overflow-hidden">
       {/* Premium Divider with Glow */}
       <div className="relative h-px w-full overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
@@ -107,21 +114,38 @@ export default function Footer() {
 
           {/* Bottom Bar */}
           <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <p className="text-white/20 text-[10px] uppercase tracking-[0.15em] font-medium">
-                &copy; {currentYear} TripSync AI. Engineered for adventure.
+            <div className="flex flex-col items-center md:items-start gap-1.5">
+              <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] font-medium">
+                &copy; {currentYear} TripSync AI &middot; Engineered for adventure
+              </p>
+              <p className="text-white/15 text-[10px] tracking-wide font-light">
+                Built with Next.js, Supabase &amp; a lot of caffeine.
               </p>
             </div>
-            
-            <div className="flex gap-8">
-              {["Terms", "Privacy", "Security"].map((item) => (
-                <span 
-                  key={item} 
-                  className="text-white/10 text-[10px] uppercase tracking-[0.15em] font-medium hover:text-white/30 cursor-pointer transition-colors"
+
+            <div className="flex items-center gap-6">
+              {legalLinks.map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/30 hover:text-brand-400 text-[10px] uppercase tracking-[0.15em] font-medium transition-colors duration-300 relative group"
                 >
-                  {item}
-                </span>
+                  {item.name}
+                  <span className="absolute -bottom-1 left-0 w-0 h-px bg-brand-400 transition-all duration-300 group-hover:w-full" />
+                </a>
               ))}
+              <span className="hidden md:inline-block w-px h-4 bg-white/10" />
+              <a
+                href={repoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-white/40 hover:text-white hover:border-white/20 hover:bg-white/[0.06] text-[10px] uppercase tracking-[0.15em] font-medium transition-all duration-300"
+              >
+                <Github className="w-3 h-3" />
+                Source
+              </a>
             </div>
           </div>
         </div>
