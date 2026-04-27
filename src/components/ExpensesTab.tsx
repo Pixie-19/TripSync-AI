@@ -322,14 +322,13 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                   </div>
                 </div>
 
-                {expense.paid_by === user?.id && (
-                  <button
-                    onClick={() => setConfirmDeleteId(expense.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-2 text-rose-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <button
+                  onClick={() => setConfirmDeleteId(expense.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-2 text-rose-400"
+                  aria-label={`Delete ${expense.title}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </motion.div>
             ))}
           </div>
@@ -531,6 +530,22 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                   </div>
                   <h3 id="delete-expense-heading" className="font-display font-bold text-lg">Delete expense?</h3>
                 </div>
+                {(() => {
+                  const target = expenses.find((e) => e.id === confirmDeleteId);
+                  if (!target) return null;
+                  const isOwn = target.paid_by === user?.id;
+                  return (
+                    <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="font-semibold text-white truncate">{target.title}</span>
+                        <span className="text-brand-400 font-display text-sm flex-shrink-0">{formatCurrency(target.amount)}</span>
+                      </div>
+                      <div className="text-xs text-white/50">
+                        Paid by {isOwn ? "you" : getMemberName(target.paid_by)}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <p className="text-sm text-white/60">
                   This will remove the expense for everyone in the trip and recalculate balances. This can&apos;t be undone.
                 </p>
