@@ -169,10 +169,11 @@ export default function DashboardPage() {
         {/* Summary stats */}
         {trips.length > 0 && (
           <motion.div
+            id="expenses"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-10"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-10 scroll-mt-24"
           >
             {[
               { icon: <MapPin className="w-5 h-5 text-brand-400" />, value: trips.length, label: "Total Trips", color: "from-brand-500/10 to-brand-600/5 border-brand-500/20" },
@@ -191,39 +192,41 @@ export default function DashboardPage() {
         )}
 
         {/* Trips grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => <div key={i} className="skeleton h-56 w-full" />)}
-          </div>
-        ) : trips.length === 0 ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-16 text-center">
-            <div className="flex justify-center mb-6"><Plane className="w-16 h-16 text-brand-400" /></div>
-            <h2 className="font-display font-bold text-2xl mb-3">No trips yet!</h2>
-            <p className="text-white/50 mb-8 max-w-sm mx-auto">Create your first trip and invite your friends to start planning together.</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => setShowJoin(true)} className="btn-secondary">Join with Code</button>
-              <button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Create Trip</button>
+        <section id="trips" className="scroll-mt-24">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-56 w-full" />)}
             </div>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trips.map((trip, i) => (
-              <TripCard key={trip.id} trip={trip} index={i} onClick={() => router.push(`/trips/${trip.id}`)} />
-            ))}
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: trips.length * 0.1 }}
-              onClick={() => setShowCreate(true)}
-              className="glass-card p-8 flex flex-col items-center justify-center gap-3 border-dashed border-white/20 hover:border-brand-500/40 hover:bg-brand-500/5 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-white/5 group-hover:bg-brand-500/20 flex items-center justify-center transition-colors duration-300">
-                <Plus className="w-7 h-7 text-white/30 group-hover:text-brand-400 transition-colors duration-300" />
+          ) : trips.length === 0 ? (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-16 text-center">
+              <div className="flex justify-center mb-6"><Plane className="w-16 h-16 text-brand-400" /></div>
+              <h2 className="font-display font-bold text-2xl mb-3">No trips yet!</h2>
+              <p className="text-white/50 mb-8 max-w-sm mx-auto">Create your first trip and invite your friends to start planning together.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => setShowJoin(true)} className="btn-secondary">Join with Code</button>
+                <button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Create Trip</button>
               </div>
-              <span className="text-white/40 group-hover:text-brand-400 font-medium transition-colors duration-300">New Trip</span>
-            </motion.button>
-          </div>
-        )}
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trips.map((trip, i) => (
+                <TripCard key={trip.id} trip={trip} index={i} onClick={() => router.push(`/trips/${trip.id}`)} />
+              ))}
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: trips.length * 0.1 }}
+                onClick={() => setShowCreate(true)}
+                className="glass-card p-8 flex flex-col items-center justify-center gap-3 border-dashed border-white/20 hover:border-brand-500/40 hover:bg-brand-500/5 transition-all duration-300 cursor-pointer group"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/5 group-hover:bg-brand-500/20 flex items-center justify-center transition-colors duration-300">
+                  <Plus className="w-7 h-7 text-white/30 group-hover:text-brand-400 transition-colors duration-300" />
+                </div>
+                <span className="text-white/40 group-hover:text-brand-400 font-medium transition-colors duration-300">New Trip</span>
+              </motion.button>
+            </div>
+          )}
+        </section>
       </main>
 
       {showCreate && (
