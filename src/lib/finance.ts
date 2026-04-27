@@ -1,5 +1,14 @@
 import { supabase } from "./supabase";
 
+type ExpenseTransactionRow = {
+  trip_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  amount: number;
+  type: "expense";
+  created_at: string;
+};
+
 /**
  * RE-CALCULATES all balances for a trip from scratch.
  * This ensures data consistency even after edits/deletes.
@@ -188,7 +197,7 @@ export async function deleteExpenseAndCleanup(tripId: string, expenseId: string)
     .eq("trip_id", tripId);
   if (fetchErr) throw fetchErr;
 
-  const rows = [];
+  const rows: ExpenseTransactionRow[] = [];
   for (const e of remaining ?? []) {
     if (!e.split_among?.length) continue;
     const perPerson = e.amount / e.split_among.length;
