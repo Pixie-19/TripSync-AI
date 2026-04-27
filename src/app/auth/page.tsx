@@ -50,8 +50,9 @@ export default function AuthPage() {
     setGoogleLoading(true);
     setError(null);
     try {
+      // Navigation is handled by the onAuthStateChanged listener above —
+      // calling router.replace here too caused a duplicate transition.
       await signInWithGoogle();
-      router.replace("/dashboard");
     } catch (e: any) {
       setError(e.message || "Google sign-in failed.");
       setGoogleLoading(false);
