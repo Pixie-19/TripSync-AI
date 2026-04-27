@@ -4,18 +4,39 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import {
-  ArrowLeft, User, Mail, MapPin, DollarSign, Edit2, Save, X,
-  Loader2, Camera, Calendar, TrendingUp, ShieldCheck
+  ArrowLeft,
+  Mail,
+  MapPin,
+  Edit2,
+  Save,
+  X,
+  Loader2,
+  Calendar,
+  ShieldCheck,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { auth } from "@/lib/firebase";
 import { updateProfile } from "firebase/auth";
 import { useAuth } from "@/lib/AuthContext";
 import { signOutEverywhere } from "@/lib/authActions";
-import { formatCurrency } from "@/lib/utils";
+import { useTheme } from "@/lib/useTheme";
+import { formatCurrency, getDaysCount } from "@/lib/utils";
+import { format } from "date-fns";
 import toast from "react-hot-toast";
+
+interface TripMini {
+  id: string;
+  title: string;
+  destination: string;
+  budget: number;
+  currency: string;
+  start_date: string;
+  end_date: string;
+  num_people: number;
+}
 
 interface ProfileStats {
   totalTrips: number;
@@ -27,16 +48,23 @@ interface ProfileStats {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, refreshUser } = useAuth();
-  const [stats, setStats] = useState<ProfileStats>({ totalTrips: 0, totalSpent: 0, totalBudget: 0, countries: [] });
+  const { theme, toggle } = useTheme();
+  const [trips, setTrips] = useState<TripMini[]>([]);
+  const [stats, setStats] = useState<ProfileStats>({
+    totalTrips: 0,
+    totalSpent: 0,
+    totalBudget: 0,
+    countries: [],
+  });
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchStats = useCallback(async (userId: string) => {
-    const { data: trips } = await supabase
+  const fetchData = useCallback(async (userId: string) => {
+    const { data: tripData } = await supabase
       .from("trip_members")
-      .select("trip_id, trips(budget, destination, currency)")
+      .select("trip_id, trips(*)")
       .eq("user_id", userId);
 
     const { data: expenses } = await supabase
@@ -44,20 +72,42 @@ export default function ProfilePage() {
       .select("amount")
       .eq("paid_by", userId);
 
-    const totalBudget = (trips ?? []).reduce((s: number, t: any) => s + (t.trips?.budget ?? 0), 0);
-    const totalSpent = (expenses ?? []).reduce((s: number, e: any) => s + e.amount, 0);
-    const countries = [...new Set((trips ?? []).map((t: any) => t.trips?.destination?.split(",").pop()?.trim()).filter(Boolean))] as string[];
+    const tripList: TripMini[] = (tripData ?? [])
+      .map((d: any) => d.trips)
+      .filter(Boolean);
+    setTrips(tripList);
 
-    setStats({ totalTrips: trips?.length ?? 0, totalSpent, totalBudget, countries });
+    const totalBudget = tripList.reduce((s, t) => s + t.budget, 0);
+    const totalSpent = (expenses ?? []).reduce(
+      (s: number, e: any) => s + e.amount,
+      0
+    );
+    const countries = [
+      ...new Set(
+        tripList
+          .map((t) => t.destination?.split(",").pop()?.trim())
+          .filter(Boolean) as string[]
+      ),
+    ];
+
+    setStats({
+      totalTrips: tripList.length,
+      totalSpent,
+      totalBudget,
+      countries,
+    });
     setLoading(false);
   }, []);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { router.replace("/auth"); return; }
+    if (!user) {
+      router.replace("/auth");
+      return;
+    }
     setDisplayName(user.user_metadata?.full_name ?? "");
-    fetchStats(user.id);
-  }, [user, authLoading, router, fetchStats]);
+    fetchData(user.id);
+  }, [user, authLoading, router, fetchData]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -69,12 +119,15 @@ export default function ProfilePage() {
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { displayName });
       }
-      await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
+      await supabase
+        .from("users")
+        .update({ full_name: displayName, updated_at: new Date().toISOString() })
+        .eq("id", user.id);
       // Firebase's onAuthStateChanged doesn't fire on profile-only changes,
       // so push the fresh snapshot into AuthContext ourselves — otherwise
       // the dashboard navbar keeps the stale name until a hard reload.
       refreshUser();
-      toast.success("Profile updated!");
+      toast.success("Profile updated");
       setEditing(false);
     } catch (e) {
       console.error("profile handleSave failed", { userId: user.id, e });
@@ -86,8 +139,8 @@ export default function ProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-accent animate-spin" />
       </div>
     );
   }
@@ -98,129 +151,224 @@ export default function ProfilePage() {
   const email = user.email ?? "";
 
   return (
-    <div className="min-h-screen bg-dark-900">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="glow-orb w-[400px] h-[400px] bg-brand-600/15 top-0 right-0" />
-        <div className="glow-orb w-[300px] h-[300px] bg-violet-600/10 bottom-0 left-0" />
-      </div>
-
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-white/8 bg-dark-900/80 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center gap-4">
-          <button onClick={() => router.push("/dashboard")} className="btn-ghost p-2" aria-label="Back">
-            <ArrowLeft className="w-5 h-5" />
+    <main className="min-h-screen bg-canvas">
+      {/* Top nav */}
+      <nav className="sticky top-0 z-40 bg-veil border-b border-subtle backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="btn-icon"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <span className="font-display font-bold">My Profile</span>
-          <div className="ml-auto">
+          <span className="font-display text-base text-ink" style={{ fontWeight: 500 }}>
+            My profile
+          </span>
+          <div className="ml-auto flex items-center gap-1">
+            <button onClick={toggle} className="btn-icon" aria-label="Toggle theme">
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button
-              onClick={async () => { await signOutEverywhere(); router.replace("/auth"); }}
-              className="btn-ghost text-sm text-rose-400"
+              onClick={async () => {
+                await signOutEverywhere();
+                router.replace("/auth");
+              }}
+              className="btn-ghost text-xs text-danger"
             >
-              Sign Out
+              Sign out
             </button>
           </div>
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-4xl mx-auto px-6 py-10 space-y-6">
-        {/* Profile Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            {/* Avatar */}
-            <div className="relative group">
+      <div className="max-w-5xl mx-auto px-6 pt-12 pb-20 grid lg:grid-cols-12 gap-10">
+        {/* Left — Identity */}
+        <aside className="lg:col-span-5">
+          <div className="lg:sticky lg:top-24">
+            <div className="flex items-start gap-5 mb-8">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-24 h-24 rounded-2xl object-cover ring-4 ring-brand-500/30" />
+                <img
+                  src={avatarUrl}
+                  alt="Avatar"
+                  className="w-24 h-24 rounded-md object-cover flex-shrink-0"
+                />
               ) : (
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 flex items-center justify-center text-3xl font-bold">
+                <div className="avatar w-24 h-24 text-3xl flex-shrink-0 rounded-md">
                   {(displayName || email)[0]?.toUpperCase()}
                 </div>
               )}
-              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="w-6 h-6 text-white" />
+              <div className="flex-1 min-w-0 mt-1">
+                <span className="badge mb-3">
+                  <ShieldCheck className="w-3 h-3" />
+                  Verified
+                </span>
+                {editing ? (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="input-field text-lg"
+                      placeholder="Your name"
+                      id="profile-name-input"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="btn-icon text-accent"
+                      aria-label="Save name"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => setEditing(false)}
+                      className="btn-icon"
+                      aria-label="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    <h1
+                      className="font-display text-3xl text-ink truncate"
+                      style={{ fontWeight: 500, letterSpacing: "-0.015em", fontVariationSettings: "'opsz' 144" }}
+                    >
+                      {displayName || "Traveler"}
+                    </h1>
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="btn-icon"
+                      aria-label="Edit name"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-sm text-ink-muted mt-2">
+                  <Mail className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span className="truncate">{email}</span>
+                </div>
               </div>
             </div>
 
-            {/* Info */}
-            <div className="flex-1 text-center sm:text-left">
-              {editing ? (
-                <div className="flex items-center gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="input-field text-xl font-bold max-w-xs"
-                    placeholder="Your name"
-                    id="profile-name-input"
-                  />
-                  <button onClick={handleSave} disabled={saving} className="btn-primary px-3 py-2" aria-label="Save name">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  </button>
-                  <button onClick={() => setEditing(false)} className="btn-ghost px-3 py-2" aria-label="Cancel edit">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 mb-2 justify-center sm:justify-start">
-                  <h1 className="font-display font-bold text-2xl">{displayName || "Traveler"}</h1>
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors"
-                    aria-label="Edit name"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-white/50 text-sm justify-center sm:justify-start">
-                <Mail className="w-4 h-4" />
-                {email}
-              </div>
-              <div className="flex items-center gap-2 text-white/30 text-xs mt-2 justify-center sm:justify-start">
-                <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3 h-3" /> Verified Traveler
-                </span>
-              </div>
+            {/* Stats — vertical editorial */}
+            <div className="space-y-px bg-default rounded-lg overflow-hidden border border-subtle">
+              <ProfileStat label="Trips" value={String(stats.totalTrips)} />
+              <ProfileStat
+                label="Total paid"
+                value={formatCurrency(stats.totalSpent)}
+              />
+              <ProfileStat
+                label="Total budget"
+                value={formatCurrency(stats.totalBudget)}
+              />
+              <ProfileStat
+                label="Destinations"
+                value={String(stats.countries.length || 0)}
+              />
             </div>
+
+            {/* Destinations chip list */}
+            {stats.countries.length > 0 && (
+              <div className="mt-6">
+                <div className="eyebrow mb-3">Visited</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {stats.countries.map((c) => (
+                    <span
+                      key={c}
+                      className="px-2.5 py-1 rounded-md bg-tint-soft text-xs text-ink-secondary"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </motion.div>
+        </aside>
 
-        {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          {[
-            { icon: <MapPin className="w-5 h-5 text-brand-400" />, value: stats.totalTrips, label: "Trips", color: "from-brand-500/10 to-brand-600/5 border-brand-500/20" },
-            { icon: <DollarSign className="w-5 h-5 text-rose-400" />, value: formatCurrency(stats.totalSpent), label: "Total Paid", color: "from-rose-500/10 to-rose-600/5 border-rose-500/20" },
-            { icon: <TrendingUp className="w-5 h-5 text-emerald-400" />, value: formatCurrency(stats.totalBudget), label: "Total Budget", color: "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20" },
-            { icon: <Calendar className="w-5 h-5 text-violet-400" />, value: stats.countries.length || "—", label: "Places", color: "from-violet-500/10 to-violet-600/5 border-violet-500/20" },
-          ].map((s) => (
-            <div key={s.label} className={`glass-card p-5 bg-gradient-to-br ${s.color} border text-center`}>
-              <div className="flex justify-center mb-2">{s.icon}</div>
-              <div className="font-display font-bold text-xl">{s.value}</div>
-              <div className="text-white/50 text-xs">{s.label}</div>
-            </div>
-          ))}
-        </motion.div>
+        {/* Right — Trip history */}
+        <section className="lg:col-span-7">
+          <div className="eyebrow-rule mb-4">Trip log</div>
+          <h2
+            className="font-display text-3xl text-ink mb-6"
+            style={{ fontWeight: 400, letterSpacing: "-0.015em", fontVariationSettings: "'opsz' 144" }}
+          >
+            Your trips, in order.
+          </h2>
 
-        {/* Destinations Visited */}
-        {stats.countries.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-brand-400" /> Destinations
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {stats.countries.map((c) => (
-                <span key={c} className="px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-sm">
-                  {c}
-                </span>
-              ))}
+          {trips.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state__icon">
+                <MapPin className="w-10 h-10" strokeWidth={1.5} />
+              </div>
+              <p className="empty-state__caption">No trips yet — start one from the dashboard.</p>
+              <button onClick={() => router.push("/dashboard")} className="btn-primary">
+                Go to dashboard
+              </button>
             </div>
-          </motion.div>
-        )}
-      </main>
+          ) : (
+            <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)]">
+              {trips.map((trip) => {
+                const days = getDaysCount(trip.start_date, trip.end_date);
+                return (
+                  <li key={trip.id}>
+                    <button
+                      onClick={() => router.push(`/trips/${trip.id}`)}
+                      className="w-full text-left bg-elevated hover:bg-overlay px-5 py-4 transition-colors flex items-center gap-4 group"
+                    >
+                      <div className="w-12 h-12 rounded-md bg-tint flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-4 h-4 text-ink-muted" strokeWidth={1.75} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className="font-display text-base text-ink truncate"
+                          style={{ fontWeight: 500, letterSpacing: "-0.005em" }}
+                        >
+                          {trip.title}
+                        </h3>
+                        <div className="text-xs text-ink-muted mt-0.5 flex items-center gap-2">
+                          <span>{trip.destination}</span>
+                          <span className="text-ink-faint">·</span>
+                          <Calendar className="w-3 h-3" strokeWidth={1.75} />
+                          <span>{format(new Date(trip.start_date), "MMM yyyy")}</span>
+                          <span className="text-ink-faint">·</span>
+                          <span>{days} {days === 1 ? "day" : "days"}</span>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="numeric-display tnum text-sm text-ink">
+                          {formatCurrency(trip.budget, trip.currency)}
+                        </div>
+                        <div className="text-[10px] text-ink-faint mt-0.5">
+                          {trip.num_people} {trip.num_people === 1 ? "person" : "people"}
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function ProfileStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-elevated px-5 py-3.5 flex items-baseline justify-between">
+      <span className="eyebrow">{label}</span>
+      <span
+        className="numeric-display tnum text-lg text-ink"
+        style={{ fontVariationSettings: "'opsz' 144" }}
+      >
+        {value}
+      </span>
     </div>
   );
 }

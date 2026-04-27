@@ -1,16 +1,40 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
-import { Brain, RefreshCw, Loader2, TrendingUp, AlertTriangle, CheckCircle, Info, Lightbulb } from "lucide-react";
+import {
+  Brain,
+  RefreshCw,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Lightbulb,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { formatCurrency, getCategoryColor, getCategoryIcon, getDaysCount } from "@/lib/utils";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
+import { formatCurrency, getCategoryIcon, getDaysCount } from "@/lib/utils";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { BudgetInsight } from "@/lib/ai";
 import GroupSummary from "@/components/GroupSummary";
 
-
-const COLORS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#f43f5e", "#64748b"];
+// Single-accent palette + ink-tonal cells
+const CHART_TOKENS = [
+  "var(--accent)",
+  "var(--accent-hover)",
+  "var(--highlight)",
+  "var(--saffron-300)",
+  "var(--ink-muted)",
+  "var(--ink-faint)",
+];
 
 interface Props {
   tripId: string;
@@ -19,14 +43,11 @@ interface Props {
   members?: any[];
 }
 
-
 export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: Props) {
-
   const [insights, setInsights] = useState<BudgetInsight[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [memberData, setMemberData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchExpenseData = useCallback(async () => {
@@ -37,13 +58,13 @@ export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: 
 
     if (!expenses) return;
 
-    // Category breakdown
     const catMap: Record<string, number> = {};
     const memberMap: Record<string, number> = {};
 
     expenses.forEach((e: any) => {
       catMap[e.category] = (catMap[e.category] ?? 0) + e.amount;
-      const name = e.paid_by_user?.full_name ?? e.paid_by_user?.email?.split("@")[0] ?? "Unknown";
+      const name =
+        e.paid_by_user?.full_name ?? e.paid_by_user?.email?.split("@")[0] ?? "Unknown";
       memberMap[name] = (memberMap[name] ?? 0) + e.amount;
     });
 
@@ -61,7 +82,6 @@ export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: 
         .sort((a, b) => b.amount - a.amount)
     );
 
-    setDataLoaded(true);
     return catMap;
   }, [tripId]);
 
@@ -76,7 +96,10 @@ export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: 
       return;
     }
 
-    const daysLeft = Math.max(0, getDaysCount(new Date().toISOString().split("T")[0], trip.end_date) - 1);
+    const daysLeft = Math.max(
+      0,
+      getDaysCount(new Date().toISOString().split("T")[0], trip.end_date) - 1
+    );
 
     try {
       const response = await fetch("/api/budget-insights", {
@@ -95,7 +118,7 @@ export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: 
         const err = await response.json();
         throw new Error(err.error ?? "Failed to get insights");
       }
-      
+
       const json = await response.json();
       setInsights(json.data || []);
     } catch (e: any) {
@@ -112,173 +135,235 @@ export default function InsightsTab({ tripId, trip, totalSpent, members = [] }: 
   const percentSpent = Math.round((totalSpent / trip.budget) * 100);
   const isOverBudget = totalSpent > trip.budget;
 
+  // Find an insight to use as the lead pull-quote
+  const leadInsight = insights[0];
+
   const iconForType = (type: string) => {
     switch (type) {
-      case "warning": return <AlertTriangle className="w-5 h-5 text-amber-400" />;
-      case "success": return <CheckCircle className="w-5 h-5 text-emerald-400" />;
-      case "tip": return <Lightbulb className="w-5 h-5 text-brand-400" />;
-      default: return <Info className="w-5 h-5 text-violet-400" />;
-    }
-  };
-
-  const bgForType = (type: string) => {
-    switch (type) {
-      case "warning": return "border-amber-500/30 bg-amber-500/5";
-      case "success": return "border-emerald-500/30 bg-emerald-500/5";
-      case "tip": return "border-brand-500/30 bg-brand-500/5";
-      default: return "border-violet-500/30 bg-violet-500/5";
+      case "warning":
+        return <AlertTriangle className="w-4 h-4 text-warning" strokeWidth={1.75} />;
+      case "success":
+        return <CheckCircle className="w-4 h-4 text-success" strokeWidth={1.75} />;
+      case "tip":
+        return <Lightbulb className="w-4 h-4 text-accent" strokeWidth={1.75} />;
+      default:
+        return <Info className="w-4 h-4 text-ink-muted" strokeWidth={1.75} />;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Group Member Summary */}
+    <div className="space-y-10">
+      {/* Lead pull-quote */}
+      {leadInsight && (
+        <blockquote className="pull-quote">
+          {leadInsight.message}
+          <footer className="mt-3 eyebrow text-ink-subtle">— AI ledger note</footer>
+        </blockquote>
+      )}
+
+      {/* Group Summary */}
       {members.length > 0 && <GroupSummary tripId={tripId} members={members} />}
 
-      {/* Budget Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-card p-5">
-          <div className="text-white/50 text-sm mb-1">Total Budget</div>
-          <div className="font-display font-bold text-2xl text-brand-400">{formatCurrency(trip.budget)}</div>
-          <div className="text-xs text-white/30 mt-1">for {trip.num_people} people</div>
+      {/* Budget overview */}
+      <section>
+        <div className="eyebrow-rule mb-4">Budget overview</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-default rounded-lg overflow-hidden border border-subtle">
+          <BudgetCell
+            label="Total budget"
+            value={formatCurrency(trip.budget)}
+            caption={`for ${trip.num_people} people`}
+          />
+          <BudgetCell
+            label="Total spent"
+            value={formatCurrency(totalSpent)}
+            caption={`${percentSpent}% of budget`}
+            tone={isOverBudget ? "danger" : "success"}
+          />
+          <BudgetCell
+            label={isOverBudget ? "Over by" : "Remaining"}
+            value={formatCurrency(Math.abs(trip.budget - totalSpent))}
+            caption={`${Math.round((trip.budget - totalSpent) / trip.num_people)} per person`}
+            tone={isOverBudget ? "danger" : undefined}
+          />
         </div>
-        <div className={`glass-card p-5 ${isOverBudget ? "border-rose-500/30" : "border-emerald-500/30"}`}>
-          <div className="text-white/50 text-sm mb-1">Total Spent</div>
-          <div className={`font-display font-bold text-2xl ${isOverBudget ? "text-rose-400" : "text-emerald-400"}`}>
-            {formatCurrency(totalSpent)}
-          </div>
-          <div className="text-xs text-white/30 mt-1">{percentSpent}% of budget</div>
-        </div>
-        <div className="glass-card p-5">
-          <div className="text-white/50 text-sm mb-1">{isOverBudget ? "Over by" : "Remaining"}</div>
-          <div className={`font-display font-bold text-2xl ${isOverBudget ? "text-rose-400" : "text-violet-400"}`}>
-            {formatCurrency(Math.abs(trip.budget - totalSpent))}
-          </div>
-          <div className="text-xs text-white/30 mt-1">
-            ₹{Math.round((trip.budget - totalSpent) / trip.num_people)} per person
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* Charts */}
       {categoryData.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Pie Chart */}
-          <div className="glass-card p-6">
-            <h4 className="font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-brand-400" /> Spending by Category
-            </h4>
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="surface-card p-5">
+            <div className="eyebrow mb-4">Spending by category</div>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} strokeWidth={2} stroke="rgba(255,255,255,0.05)">
+                <Pie
+                  data={categoryData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  strokeWidth={2}
+                  stroke="var(--surface-elevated)"
+                >
                   {categoryData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={CHART_TOKENS[i % CHART_TOKENS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
                   formatter={(value: any) => [formatCurrency(value), ""]}
-                  contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#f8fafc" }}
+                  contentStyle={{
+                    background: "var(--surface-overlay)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    color: "var(--ink-primary)",
+                    fontSize: "12px",
+                  }}
+                  labelStyle={{ color: "var(--ink-primary)" }}
+                  itemStyle={{ color: "var(--ink-primary)" }}
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {categoryData.map((cat, i) => (
-                <div key={cat.name} className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                  <span className="text-white/60 flex items-center gap-1.5">
-                    {(() => {
-                      const Icon = cat.icon;
-                      return <Icon className="w-3.5 h-3.5" />;
-                    })()}
-                    {cat.name}
-                  </span>
-                  <span className="ml-auto text-white/80 font-medium">{formatCurrency(cat.value)}</span>
-                </div>
-              ))}
-            </div>
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-4">
+              {categoryData.map((cat, i) => {
+                const Icon = cat.icon;
+                return (
+                  <li key={cat.name} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: CHART_TOKENS[i % CHART_TOKENS.length] }}
+                    />
+                    <Icon className="w-3 h-3 text-ink-muted" strokeWidth={1.75} />
+                    <span className="text-ink-secondary truncate">{cat.name}</span>
+                    <span className="ml-auto numeric-display tnum text-ink">
+                      {formatCurrency(cat.value)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
-          {/* Member spending */}
           {memberData.length > 0 && (
-            <div className="glass-card p-6">
-              <h4 className="font-semibold mb-4">Who Paid Most</h4>
+            <div className="surface-card p-5">
+              <div className="eyebrow mb-4">Who paid most</div>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={memberData} barSize={28}>
-                  <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <BarChart data={memberData} barSize={20}>
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: "var(--ink-muted)", fontSize: 11 }}
+                    axisLine={{ stroke: "var(--border-default)" }}
+                    tickLine={false}
+                  />
                   <YAxis hide />
                   <Tooltip
                     formatter={(v: any) => [formatCurrency(v), "Paid"]}
-                    contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#f8fafc" }}
+                    contentStyle={{
+                      background: "var(--surface-overlay)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "8px",
+                      color: "var(--ink-primary)",
+                      fontSize: "12px",
+                    }}
                   />
-                  <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
-                    {memberData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Bar>
+                  <Bar dataKey="amount" radius={[4, 4, 0, 0]} fill="var(--accent)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* AI Insights */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h4 className="font-display font-semibold text-lg flex items-center gap-2">
-            <Brain className="w-5 h-5 text-brand-400" />
-            AI Budget Insights
-          </h4>
+      {/* AI insights */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <div className="eyebrow-rule mb-2">Notes</div>
+            <h4
+              className="font-display text-2xl text-ink"
+              style={{ fontWeight: 500, fontVariationSettings: "'opsz' 144" }}
+            >
+              <Brain className="inline w-4 h-4 text-accent mr-2 -translate-y-0.5" strokeWidth={1.75} />
+              AI budget notes
+            </h4>
+          </div>
           <button
             onClick={generateInsights}
             disabled={loading}
-            className="btn-secondary text-sm"
+            className="btn-secondary btn-sm"
             id="generate-insights-btn"
           >
             {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing…
+              </>
             ) : (
-              <><RefreshCw className="w-4 h-4" /> {insights.length > 0 ? "Refresh" : "Analyze"}</>
+              <>
+                <RefreshCw className="w-3.5 h-3.5" /> {insights.length > 0 ? "Refresh" : "Analyze"}
+              </>
             )}
           </button>
         </div>
 
         {error && (
-          <div className="px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm mb-4">
+          <div className="px-4 py-3 rounded-lg border border-danger bg-danger-soft text-danger text-sm mb-4">
             {error}
           </div>
         )}
 
         {insights.length === 0 && !loading && (
-          <div className="text-center py-8">
-            <Brain className="w-12 h-12 text-brand-400/40 mx-auto mb-3" />
-            <p className="text-white/40 text-sm">
-              Click "Analyze" to get personalized AI budget insights for your trip
+          <div className="empty-state">
+            <div className="empty-state__icon">
+              <Brain className="w-10 h-10" strokeWidth={1.5} />
+            </div>
+            <p className="empty-state__caption">
+              Click <em>Analyze</em> for personalized budget notes for your trip.
             </p>
           </div>
         )}
 
-        <div className="space-y-3">
-          {insights.map((insight, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`p-4 rounded-xl border ${bgForType(insight.type)} flex gap-4`}
-            >
-              <div className="flex-shrink-0 mt-0.5">{iconForType(insight.type)}</div>
-              <div>
-                <div className="font-semibold text-sm mb-1">
-                  <span className="mr-2">{insight.icon}</span>
-                  {insight.title}
+        {insights.length > 0 && (
+          <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)]">
+            {insights.map((insight, i) => (
+              <li key={i} className="bg-elevated px-4 py-4 flex gap-3">
+                <div className="flex-shrink-0 mt-0.5">{iconForType(insight.type)}</div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-ink mb-1">
+                    {insight.title}
+                  </div>
+                  <div className="text-sm text-ink-secondary leading-relaxed">{insight.message}</div>
                 </div>
-                <div className="text-sm text-white/60">{insight.message}</div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function BudgetCell({
+  label,
+  value,
+  caption,
+  tone,
+}: {
+  label: string;
+  value: string;
+  caption?: string;
+  tone?: "success" | "danger";
+}) {
+  const valueColor =
+    tone === "success" ? "text-success" : tone === "danger" ? "text-danger" : "text-ink";
+  return (
+    <div className="bg-elevated px-5 py-5">
+      <div className="eyebrow mb-2">{label}</div>
+      <div
+        className={`numeric-display tnum text-2xl ${valueColor}`}
+        style={{ fontVariationSettings: "'opsz' 144" }}
+      >
+        {value}
       </div>
+      {caption && <div className="text-[11px] text-ink-muted mt-1">{caption}</div>}
     </div>
   );
 }

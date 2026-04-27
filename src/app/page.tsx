@@ -1,398 +1,334 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRight,
   MapPin,
-  Users,
+  Brain,
+  CreditCard,
   Zap,
   TrendingUp,
-  ArrowRight,
-  CheckCircle,
-  Star,
+  Users,
   Globe,
-  CreditCard,
-  Brain,
   Plane,
   Bot,
   CheckCircle2,
-  Rocket,
-  Heart,
-  Utensils,
-  AlertTriangle,
-  Car,
-  Building2,
+  Compass,
 } from "lucide-react";
+
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1800&q=80";
 
 const features = [
   {
-    icon: <Brain className="w-6 h-6" />,
-    title: "AI Itinerary Generator",
-    description: "Describe your dream trip and get a full day-wise plan with cost estimates in seconds.",
-    color: "from-brand-500/20 to-violet-500/20",
-    border: "border-brand-500/30",
-    iconColor: "text-brand-400",
+    n: "01",
+    icon: Brain,
+    title: "AI itinerary generator",
+    body:
+      "Describe the trip, hand off the planning. A day-by-day plan with cost estimates, ready in seconds.",
   },
   {
-    icon: <CreditCard className="w-6 h-6" />,
-    title: "Smart Expense Splitting",
-    description: "Auto-categorize expenses and split them fairly. Minimize transactions with our algorithm.",
-    color: "from-emerald-500/20 to-brand-500/20",
-    border: "border-emerald-500/30",
-    iconColor: "text-emerald-400",
+    n: "02",
+    icon: CreditCard,
+    title: "Smart expense splitting",
+    body:
+      "Auto-categorized expenses, fair splits, and a settlement algorithm that minimizes who pays whom.",
   },
   {
-    icon: <Zap className="w-6 h-6" />,
-    title: "Real-Time Updates",
-    description: "Everyone sees expense updates instantly. No more WhatsApp screenshots or manual tallies.",
-    color: "from-amber-500/20 to-rose-500/20",
-    border: "border-amber-500/30",
-    iconColor: "text-amber-400",
+    n: "03",
+    icon: Zap,
+    title: "Real-time updates",
+    body:
+      "Everyone sees the same ledger, instantly. No more screenshots, no more end-of-trip arguments.",
   },
   {
-    icon: <TrendingUp className="w-6 h-6" />,
-    title: "AI Budget Insights",
-    description: "Get personalized spending analysis and actionable suggestions to stay on budget.",
-    color: "from-violet-500/20 to-rose-500/20",
-    border: "border-violet-500/30",
-    iconColor: "text-violet-400",
+    n: "04",
+    icon: TrendingUp,
+    title: "AI budget notes",
+    body:
+      "Personalized spending analysis, with concrete suggestions to keep the trip on budget.",
   },
   {
-    icon: <Users className="w-6 h-6" />,
-    title: "Group Coordination",
-    description: "Vote on activities, manage shared itineraries, and coordinate with your squad effortlessly.",
-    color: "from-rose-500/20 to-violet-500/20",
-    border: "border-rose-500/30",
-    iconColor: "text-rose-400",
+    n: "05",
+    icon: Users,
+    title: "Group coordination",
+    body:
+      "Vote on activities, manage shared itineraries, and keep the group aligned without the chat fatigue.",
   },
   {
-    icon: <Globe className="w-6 h-6" />,
-    title: "Anywhere, Anytime",
-    description: "Works across devices. Plan from your laptop, track from your phone.",
-    color: "from-brand-500/20 to-emerald-500/20",
-    border: "border-brand-500/30",
-    iconColor: "text-brand-400",
+    n: "06",
+    icon: Globe,
+    title: "Anywhere, anytime",
+    body:
+      "Plan from a laptop, log expenses from a phone. The ledger follows the group, not the device.",
   },
 ];
 
-const stats = [
-  { value: "10x", label: "Faster Planning" },
-  { value: "₹0", label: "Conflicts" },
-  { value: "100%", label: "Transparent" },
+const steps = [
+  { n: "I", title: "Create your trip", body: "Add destination, budget, dates, and invite the group with a code.", icon: Plane },
+  { n: "II", title: "Generate AI itinerary", body: "A day-wise plan with places, timings, and cost estimates.", icon: Bot },
+  { n: "III", title: "Track expenses", body: "Add expenses on the go. AI categorizes. The split is automatic.", icon: CreditCard },
+  { n: "IV", title: "Settle clean", body: "See who owes whom and settle with the fewest possible transactions.", icon: CheckCircle2 },
 ];
 
 export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main className="min-h-screen bg-dark-900 overflow-hidden">
-      {/* Background glows */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="glow-orb w-[600px] h-[600px] bg-brand-600/20 top-[-200px] left-[-100px]" />
-        <div className="glow-orb w-[500px] h-[500px] bg-violet-600/15 top-[200px] right-[-100px]" />
-        <div className="glow-orb w-[400px] h-[400px] bg-emerald-600/10 bottom-[100px] left-[200px]" />
-      </div>
-
+    <main className="min-h-screen bg-canvas">
       {/* Nav */}
-      <nav className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-2"
-        >
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
-            <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+      <nav className="border-b border-subtle">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-accent text-[color:var(--accent-on)] flex items-center justify-center">
+              <MapPin className="w-4 h-4" strokeWidth={2.25} />
+            </div>
+            <span className="font-display text-lg font-medium tracking-tight text-ink">
+              Trip<span className="italic text-accent">Sync</span>
+              <span className="text-ink-muted hidden sm:inline"> AI</span>
+            </span>
           </div>
-          <span className="font-display font-bold text-lg sm:text-xl">
-            Trip<span className="gradient-text">Sync</span><span className="hidden sm:inline"> AI</span>
-          </span>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-1.5 sm:gap-3"
-        >
-          <button
-            onClick={() => router.push("/auth")}
-            className="btn-ghost text-xs sm:text-sm px-2 sm:px-4"
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => router.push("/auth")}
-            className="btn-primary text-xs sm:text-sm px-3 sm:px-6"
-          >
-            Get Started <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
-          </button>
-        </motion.div>
-      </nav>
-
-      {/* Hero */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8 text-sm text-brand-300">
-            <Zap className="w-4 h-4 text-brand-400" />
-            AI-Powered Group Travel – No More Chaos
-          </div>
-
-          <h1 className="font-display font-black text-6xl md:text-8xl leading-none mb-6">
-            Travel Together,
-            <br />
-            <span className="gradient-text">Stress Never.</span>
-          </h1>
-
-          <p className="text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            TripSync AI plans your trip, splits your bills, and gives you real-time
-            insights — so your group can focus on making memories, not spreadsheets.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.push("/auth")} className="btn-ghost text-sm">
+              Sign in
+            </button>
             <button
               onClick={() => router.push("/auth")}
-              className="btn-primary text-base px-8 py-4"
+              className="btn-primary text-sm"
               id="hero-cta-primary"
             >
-              Start Planning Free
-              <ArrowRight className="w-5 h-5" />
+              Get started
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Masthead */}
+      <header className="relative max-w-7xl mx-auto px-6 pt-14 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-12 gap-10 items-center">
+        <div className="lg:col-span-7 relative z-10">
+          <div className="eyebrow-rule mb-6">Issue No. 01 · Spring 2026</div>
+          <h1
+            className="font-display text-ink leading-[0.95]"
+            style={{
+              fontWeight: 400,
+              letterSpacing: "-0.035em",
+              fontSize: "clamp(2.75rem, 7vw, 5.25rem)",
+              fontVariationSettings: "'opsz' 144, 'SOFT' 0",
+            }}
+          >
+            Plan together.
+            <br />
+            <span className="italic">Spend smarter.</span>
+            <br />
+            Settle clean.
+          </h1>
+
+          <div className="divider-rule mt-8 mb-7" />
+
+          <p className="text-ink-secondary text-base sm:text-lg leading-relaxed max-w-xl">
+            TripSync AI is the editorial planner for groups. AI itineraries,
+            fair expense splits, and a clean ledger — all in real-time, so the
+            trip can be about the trip.
+          </p>
+
+          <div className="mt-10 flex items-center gap-3">
             <button
               onClick={() => router.push("/auth")}
-              className="btn-secondary text-base px-8 py-4"
-              id="hero-cta-demo"
+              className="btn-primary btn-lg"
+              style={{ background: "var(--highlight)", color: "#1A1612" }}
             >
-              View Demo
+              Start a trip
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button onClick={() => router.push("/auth")} className="btn-secondary btn-lg">
+              Sign in
             </button>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-8 sm:gap-12 mt-16 sm:mt-20"
-        >
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="font-display font-black text-4xl gradient-text">
-                {stat.value}
-              </div>
-              <div className="text-white/50 text-sm mt-1">{stat.label}</div>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Mock Dashboard Preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-20 relative"
-        >
-          <div className="glass-card p-1 max-w-4xl mx-auto">
-            <div className="bg-dark-800 rounded-xl overflow-hidden">
-              {/* Fake browser bar */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-dark-900">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-rose-500/60" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/60" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/60" />
-                </div>
-                <div className="flex-1 mx-4 px-3 py-1 rounded-md bg-white/5 text-white/30 text-xs text-center">
-                  app.tripsync.ai/dashboard
-                </div>
-              </div>
-
-              {/* Fake dashboard */}
-              <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="col-span-1 md:col-span-2 space-y-4">
-                  <div className="glass-card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-semibold text-white/80">Goa Beach Trip</div>
-                      <div className="badge bg-emerald-500/20 text-emerald-400">Active</div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {["₹45,000", "6 Members", "5 Days"].map((v, i) => (
-                        <div key={i} className="glass-card p-3 text-center">
-                          <div className="text-sm font-bold text-brand-400">{v}</div>
-                          <div className="text-xs text-white/40 mt-0.5">
-                            {["Budget", "People", "Duration"][i]}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="glass-card p-4 space-y-2">
-                    <div className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                      Recent Expenses
-                    </div>
-                    {[
-                      { icon: <Utensils className="w-4 h-4 text-amber-400" />, name: "Zomato Dinner", amt: "₹1,200", color: "text-amber-400" },
-                      { icon: <Car className="w-4 h-4 text-brand-400" />, name: "Uber to Beach", amt: "₹340", color: "text-brand-400" },
-                      { icon: <Building2 className="w-4 h-4 text-violet-400" />, name: "Hotel Booking", amt: "₹8,500", color: "text-violet-400" },
-                    ].map((e, i) => (
-                      <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>{e.icon}</span>
-                          <span className="text-white/70">{e.name}</span>
-                        </div>
-                        <span className={`text-sm font-semibold ${e.color}`}>{e.amt}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="glass-card p-4">
-                    <div className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-                      Balances
-                    </div>
-                    {[
-                      { name: "Riya", owes: "+₹2,100", pos: true },
-                      { name: "Arjun", owes: "-₹850", pos: false },
-                      { name: "Priya", owes: "+₹340", pos: true },
-                    ].map((m, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="avatar w-7 h-7 text-xs">{m.name[0]}</div>
-                          <span className="text-white/70">{m.name}</span>
-                        </div>
-                        <span className={m.pos ? "text-emerald-400" : "text-rose-400"}>
-                          {m.owes}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="glass-card p-4">
-                    <div className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
-                      AI Insight
-                    </div>
-                    <div className="text-xs text-amber-400 flex gap-2">
-                      <span><AlertTriangle className="w-5 h-5 text-amber-500" /></span>
-                      <span>Food spend is 45% of budget. Consider local restaurants to save ₹2,000.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="lg:col-span-5 relative h-[40vh] lg:h-[60vh]">
+          <div className="absolute inset-0 rounded-lg overflow-hidden border border-subtle">
+            <img
+              src={HERO_IMAGE}
+              alt="Mountain valley at dawn"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: "saturate(0.85)" }}
+            />
+            <div
+              className="absolute inset-0 mix-blend-multiply"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(247,241,229,0.05) 0%, rgba(247,241,229,0.30) 100%)",
+              }}
+            />
           </div>
-          {/* Glow under preview */}
-          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-brand-500/10 blur-3xl rounded-full" />
-        </motion.div>
+          {/* Saffron rule decoration */}
+          <span
+            aria-hidden
+            className="hidden lg:block absolute -top-8 -left-8 text-[10rem] leading-none font-display text-highlight opacity-25 select-none"
+            style={{ fontVariationSettings: "'opsz' 144" }}
+          >
+            ¶
+          </span>
+        </div>
+      </header>
+
+      {/* Stat strip */}
+      <section className="border-y border-subtle bg-overlay/50">
+        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-8 sm:divide-x divide-default">
+          <div className="sm:px-4 text-center sm:text-left">
+            <div className="numeric-display tnum text-3xl text-ink" style={{ fontVariationSettings: "'opsz' 144" }}>
+              10×
+            </div>
+            <div className="text-xs text-ink-muted mt-1">faster planning</div>
+          </div>
+          <div className="sm:px-4 text-center sm:text-left">
+            <div className="numeric-display tnum text-3xl text-ink" style={{ fontVariationSettings: "'opsz' 144" }}>
+              ₹0
+            </div>
+            <div className="text-xs text-ink-muted mt-1">in end-of-trip arguments</div>
+          </div>
+          <div className="sm:px-4 text-center sm:text-left">
+            <div className="numeric-display tnum text-3xl text-ink" style={{ fontVariationSettings: "'opsz' 144" }}>
+              100%
+            </div>
+            <div className="text-xs text-ink-muted mt-1">transparent group ledger</div>
+          </div>
+        </div>
       </section>
 
-      {/* Features */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="font-display font-bold text-4xl md:text-5xl mb-4">
-            Everything your group needs
+      {/* Features — editorial columns */}
+      <section className="max-w-7xl mx-auto px-6 py-20 sm:py-28">
+        <div className="mb-14 max-w-3xl">
+          <div className="eyebrow-rule mb-3">The case for TripSync</div>
+          <h2
+            className="font-display text-ink"
+            style={{
+              fontWeight: 400,
+              letterSpacing: "-0.02em",
+              fontSize: "clamp(2rem, 4vw, 3rem)",
+              fontVariationSettings: "'opsz' 144",
+            }}
+          >
+            Everything the group needs.
+            <br />
+            <span className="italic">Nothing it doesn&apos;t.</span>
           </h2>
-          <p className="text-white/50 text-lg max-w-xl mx-auto">
-            From planning to settlement — TripSync handles the chaos so you don't have to.
-          </p>
-        </motion.div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={`glass-card-hover p-6 bg-gradient-to-br ${f.color} border ${f.border}`}
-            >
-              <div className={`w-12 h-12 rounded-xl bg-dark-800 flex items-center justify-center mb-4 ${f.iconColor}`}>
-                {f.icon}
-              </div>
-              <h3 className="font-display font-semibold text-lg mb-2">{f.title}</h3>
-              <p className="text-white/50 text-sm leading-relaxed">{f.description}</p>
-            </motion.div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
+          {features.map((f) => {
+            const Icon = f.icon;
+            return (
+              <article key={f.n} className="relative">
+                <div className="serial-numeral text-ink-faint mb-4">{f.n}</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className="w-4 h-4 text-accent" strokeWidth={1.75} />
+                  <h3
+                    className="font-display text-lg text-ink"
+                    style={{ fontWeight: 500, letterSpacing: "-0.005em" }}
+                  >
+                    {f.title}
+                  </h3>
+                </div>
+                <p className="text-sm text-ink-secondary leading-relaxed">{f.body}</p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
       {/* How it works */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="font-display font-bold text-4xl mb-4">How it works</h2>
-        </motion.div>
-
-        <div className="relative">
-          <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-brand-500/50 via-violet-500/50 to-transparent" />
-          {[
-            { step: "1", title: "Create Your Trip", desc: "Add destination, budget, dates, and invite your friends with a unique code.", icon: <Plane className="w-6 h-6 text-brand-400" /> },
-            { step: "2", title: "Generate AI Itinerary", desc: "Our AI builds a day-wise plan with places, timings, and cost estimates.", icon: <Bot className="w-6 h-6 text-violet-400" /> },
-            { step: "3", title: "Track Expenses", desc: "Add expenses on the go. AI auto-categorizes them. Everyone sees the split.", icon: <CreditCard className="w-6 h-6 text-emerald-400" /> },
-            { step: "4", title: "Settle Up", desc: "See who owes whom and settle with minimal transactions at trip's end.", icon: <CheckCircle2 className="w-6 h-6 text-rose-400" /> },
-          ].map((step, i) => (
-            <motion.div
-              key={step.step}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.15 }}
-              className="relative flex gap-6 pb-10 last:pb-0"
+      <section className="border-t border-subtle bg-overlay/30">
+        <div className="max-w-7xl mx-auto px-6 py-20 sm:py-28">
+          <div className="mb-12 max-w-3xl">
+            <div className="eyebrow-rule mb-3">How it works</div>
+            <h2
+              className="font-display text-ink"
+              style={{
+                fontWeight: 400,
+                letterSpacing: "-0.02em",
+                fontSize: "clamp(2rem, 4vw, 3rem)",
+                fontVariationSettings: "'opsz' 144",
+              }}
             >
-              <div className="relative z-10 w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center font-display font-bold text-lg flex-shrink-0">
-                {step.step}
-              </div>
-              <div className="glass-card flex-1 p-5">
-                <div className="mb-3">{step.icon}</div>
-                <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
-                <p className="text-white/50 text-sm">{step.desc}</p>
-              </div>
-            </motion.div>
-          ))}
+              Four steps to a clean ledger.
+            </h2>
+          </div>
+
+          <ol className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <li key={s.n} className="relative">
+                  <div className="flex items-baseline gap-3 mb-3">
+                    <span
+                      className="font-display text-ink-faint"
+                      style={{
+                        fontWeight: 300,
+                        fontSize: "1.5rem",
+                        letterSpacing: "0.02em",
+                        fontVariationSettings: "'opsz' 144",
+                      }}
+                    >
+                      {s.n}
+                    </span>
+                    <span className="h-px flex-1 bg-default" />
+                    <Icon className="w-4 h-4 text-accent" strokeWidth={1.75} />
+                  </div>
+                  <h3
+                    className="font-display text-lg text-ink mb-1.5"
+                    style={{ fontWeight: 500, letterSpacing: "-0.005em" }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p className="text-sm text-ink-secondary leading-relaxed">{s.body}</p>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative z-10 max-w-3xl mx-auto px-6 py-24 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="glass-card p-12"
-          style={{ background: "linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(139,92,246,0.08) 100%)" }}
-        >
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-dark-800/80 border border-white/5 flex items-center justify-center shadow-lg">
-              <Rocket className="w-10 h-10 text-brand-400" />
-            </div>
-          </div>
-          <h2 className="font-display font-black text-4xl md:text-5xl mb-4">
-            Your next trip starts here
-          </h2>
-          <p className="text-white/50 text-lg mb-8">
-            Join thousands of groups who travel smarter with TripSync AI.
+      {/* Pull-quote CTA */}
+      <section className="max-w-4xl mx-auto px-6 py-20 sm:py-32">
+        <blockquote className="text-center">
+          <p
+            className="font-display italic text-ink"
+            style={{
+              fontWeight: 400,
+              letterSpacing: "-0.015em",
+              fontSize: "clamp(1.75rem, 4vw, 3rem)",
+              lineHeight: 1.2,
+              fontVariationSettings: "'opsz' 144",
+            }}
+          >
+            &ldquo;The trip should be about the trip.
+            <br />
+            Not the spreadsheet.&rdquo;
           </p>
+          <span
+            aria-hidden
+            className="block w-16 h-0.5 bg-highlight mx-auto mt-8"
+          />
+          <footer className="mt-6 eyebrow text-ink-subtle">
+            <Compass className="inline w-3 h-3 mr-2 -translate-y-px" strokeWidth={1.75} />
+            The TripSync principle
+          </footer>
+        </blockquote>
+
+        <div className="mt-12 flex justify-center">
           <button
             onClick={() => router.push("/auth")}
-            className="btn-primary text-lg px-10 py-4"
+            className="btn-primary btn-lg"
             id="bottom-cta"
           >
-            Get Started — It's Free
-            <ArrowRight className="w-5 h-5" />
+            Start a trip free
+            <ArrowRight className="w-4 h-4" />
           </button>
-        </motion.div>
+        </div>
       </section>
-
-
     </main>
   );
 }

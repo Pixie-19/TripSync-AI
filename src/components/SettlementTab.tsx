@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
 import {
   Handshake,
   ArrowRight,
   CheckCircle,
-  Loader2,
   RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -23,7 +21,9 @@ interface Props {
 }
 
 export default function SettlementTab({ tripId, members, trip }: Props) {
-  const [settlements, setSettlements] = useState<{ from: string; to: string; amount: number; settled?: boolean; id?: string }[]>([]);
+  const [settlements, setSettlements] = useState<
+    { from: string; to: string; amount: number; settled?: boolean; id?: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activePayment, setActivePayment] = useState<any>(null);
@@ -40,68 +40,64 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
     return m?.users?.avatar_url;
   };
 
-  const computeSettlements = useCallback(async (forceRecalc = false) => {
-    setLoading(true);
-    
-    if (forceRecalc) {
-      console.log("Force recalculating balances...");
-      await recalculateBalances(tripId);
-    }
+  const computeSettlements = useCallback(
+    async (forceRecalc = false) => {
+      setLoading(true);
 
-    console.log("Fetching balances for trip:", tripId);
-    const { data, error } = await supabase
-      .from("balances")
-      .select("*")
-      .eq("trip_id", tripId)
-      .order("updated_at", { ascending: false });
+      if (forceRecalc) {
+        await recalculateBalances(tripId);
+      }
 
-    if (error) {
-      console.error("Balance fetch error details:", {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-    }
-    console.log("Retrieved balances:", data);
+      const { data } = await supabase
+        .from("balances")
+        .select("*")
+        .eq("trip_id", tripId)
+        .order("updated_at", { ascending: false });
 
-    if (data) {
-      const mapped = data.map(d => ({
-        id: d.id,
-        from: d.from_user_id,
-        to: d.to_user_id,
-        amount: d.amount,
-        settled: d.status === 'settled'
-      }));
-      setSettlements(mapped);
-    }
-    setLoading(false);
-  }, [tripId]);
+      if (data) {
+        const mapped = data.map((d) => ({
+          id: d.id,
+          from: d.from_user_id,
+          to: d.to_user_id,
+          amount: d.amount,
+          settled: d.status === "settled",
+        }));
+        setSettlements(mapped);
+      }
+      setLoading(false);
+    },
+    [tripId]
+  );
 
   useEffect(() => {
     computeSettlements();
 
+    // Realtime channel name preserved
     const channel = supabase
       .channel(`balances-realtime-${tripId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "balances", filter: `trip_id=eq.${tripId}` }, () => {
-        console.log("Realtime update received for balances");
-        computeSettlements();
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "balances", filter: `trip_id=eq.${tripId}` },
+        () => {
+          computeSettlements();
+        }
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [computeSettlements, tripId]);
 
   const markSettled = async (settlement: any) => {
     setSaving(true);
     try {
-      console.log("Processing payment for:", settlement);
       await processPayment({
         tripId,
         payerId: settlement.from,
         receiverId: settlement.to,
         amount: settlement.amount,
-        balanceId: settlement.id
+        balanceId: settlement.id,
       });
       await computeSettlements();
     } finally {
@@ -112,154 +108,184 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
   const relevantSettlements = settlements.filter(
     (s) => s.from === currentUserId || s.to === currentUserId
   );
+  const unsettled = relevantSettlements.filter((s) => !s.settled);
+  const unsettledToPay = unsettled.filter((s) => s.from === currentUserId);
 
-  const unsettledCountToPay = relevantSettlements.filter((s) => !s.settled && s.from === currentUserId).length;
-  const unsettledCountTotal = relevantSettlements.filter((s) => !s.settled).length;
-  
-  const totalToSettle = relevantSettlements
-    .filter((s) => !s.settled && s.from === currentUserId)
+  const totalToSettle = unsettledToPay.reduce((sum, s) => sum + s.amount, 0);
+  const totalToReceive = unsettled
+    .filter((s) => s.to === currentUserId)
     .reduce((sum, s) => sum + s.amount, 0);
 
+  const net = totalToReceive - totalToSettle;
+
+  // Find largest "you owe" line for the saffron emphasis rule
+  const largestOwedId = unsettledToPay.length > 0
+    ? unsettledToPay.reduce((maxS, s) => (s.amount > maxS.amount ? s : maxS), unsettledToPay[0]).id
+    : null;
+
   return (
-    <div className="space-y-6">
-      {/* Due Summary Widgets */}
+    <div className="space-y-10">
+      {/* Headline numbers */}
+      <section>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-default rounded-lg overflow-hidden border border-subtle">
+          <HeadCell
+            label="You owe"
+            value={formatCurrency(totalToSettle, trip.currency)}
+            tone={totalToSettle > 0 ? "danger" : undefined}
+          />
+          <HeadCell
+            label="You're owed"
+            value={formatCurrency(totalToReceive, trip.currency)}
+            tone={totalToReceive > 0 ? "success" : undefined}
+          />
+          <HeadCell
+            label="Net position"
+            value={`${net >= 0 ? "+" : ""}${formatCurrency(net, trip.currency)}`}
+            tone={net > 0 ? "success" : net < 0 ? "danger" : undefined}
+            caption={net === 0 ? "even" : net > 0 ? "to receive" : "to pay"}
+          />
+        </div>
+      </section>
+
+      {/* Due summary widgets */}
       <DueSummary tripId={tripId} members={members} />
 
-      {/* Header card */}
-      <div className="glass-card p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-4">
+      {/* Action header */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
           <div>
-            <h3 className="font-display font-bold text-lg sm:text-xl flex items-center gap-2">
-              <Handshake className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-              Settle Up
+            <div className="eyebrow-rule mb-2">Outstanding</div>
+            <h3
+              className="font-display text-2xl text-ink"
+              style={{ fontWeight: 500, letterSpacing: "-0.01em", fontVariationSettings: "'opsz' 144" }}
+            >
+              <Handshake className="inline w-5 h-5 text-accent mr-2 -translate-y-0.5" strokeWidth={1.5} />
+              {unsettled.length === 0
+                ? "All settled up"
+                : `${unsettledToPay.length} to pay`}
             </h3>
-            <p className="text-white/50 text-xs sm:text-sm mt-0.5 sm:mt-1">
-              {unsettledCountTotal === 0
-                ? "All expenses settled!"
-                : `${unsettledCountToPay} payment${unsettledCountToPay !== 1 ? "s" : ""} remaining`}
-            </p>
           </div>
           <button
             onClick={() => computeSettlements(true)}
             disabled={loading}
-            className="btn-ghost text-xs sm:text-sm"
+            className="btn-ghost text-xs"
           >
-            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${loading ? "animate-spin" : ""}`} />
-            Sync Ledger
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Sync ledger
           </button>
         </div>
 
-        {unsettledCountToPay > 0 && (
-          <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20">
-            <div className="text-sm text-white/50">Total you owe</div>
-            <div className="text-2xl font-bold text-rose-400">{formatCurrency(totalToSettle)}</div>
+        {/* Settlement list */}
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton h-16" />
+            ))}
           </div>
-        )}
-
-        {unsettledCountTotal === 0 && relevantSettlements.length > 0 && (
-          <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
-            <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
-            <div className="font-semibold text-emerald-400">All settled up!</div>
-            <div className="text-sm text-white/40 mt-1">Everyone's even. Time to plan the next trip!</div>
+        ) : relevantSettlements.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state__icon">
+              <CheckCircle className="w-10 h-10 text-success" strokeWidth={1.5} />
+            </div>
+            <div className="empty-state__title">You&apos;re all settled up</div>
+            <p className="empty-state__caption">
+              No pending payments for you right now.
+            </p>
           </div>
-        )}
-      </div>
+        ) : (
+          <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)]">
+            {relevantSettlements.map((settlement, i) => {
+              const isPayer = settlement.from === currentUserId;
+              const isReceiver = settlement.to === currentUserId;
+              const isLargestOwed = settlement.id === largestOwedId;
 
-      {/* Settlement list */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="skeleton h-20" />)}
-        </div>
-      ) : relevantSettlements.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <h3 className="font-semibold text-lg mb-2">You're all settled up!</h3>
-          <p className="text-white/40 text-sm">
-            No pending payments for you right now.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {relevantSettlements.map((settlement, i) => {
-            const isPayer = settlement.from === currentUserId;
-            const isReceiver = settlement.to === currentUserId;
-
-            return (
-              <motion.div
-                key={settlement.id || i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className={`glass-card p-3 sm:p-5 flex items-center gap-2 sm:gap-4 ${
-                  settlement.settled ? "opacity-60" : ""
-                }`}
-              >
-                {/* From */}
-                <div className="flex flex-col items-center">
-                  <div className="avatar w-10 h-10 text-sm overflow-hidden border border-white/10" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #f43f5e, #fb7185)" }}>
+              return (
+                <li
+                  key={settlement.id || i}
+                  className={`relative bg-elevated px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-5 ${settlement.settled ? "opacity-60" : ""}`}
+                >
+                  {isLargestOwed && !settlement.settled && (
+                    <span
+                      className="absolute left-0 top-0 bottom-0 w-0.5 bg-highlight"
+                      aria-label="Most owed line"
+                    />
+                  )}
+                  {/* From */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {getMemberAvatar(settlement.from) ? (
-                      <img src={getMemberAvatar(settlement.from)} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={getMemberAvatar(settlement.from)}
+                        alt=""
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
                     ) : (
-                      getMemberName(settlement.from)[0]?.toUpperCase()
+                      <div className="avatar w-8 h-8 text-xs">
+                        {getMemberName(settlement.from)[0]?.toUpperCase()}
+                      </div>
                     )}
+                    <span className="text-sm text-ink truncate max-w-[8rem]">
+                      {isPayer ? "You" : getMemberName(settlement.from)}
+                    </span>
                   </div>
-                  <div className="text-xs text-white/50 mt-1 max-w-[70px] text-center truncate">
-                    {getMemberName(settlement.from)}
-                  </div>
-                </div>
 
-                {/* Arrow + Amount */}
-                <div className="flex-1 flex flex-col items-center min-w-0">
-                  <div className={`font-display font-bold text-sm sm:text-xl truncate ${settlement.settled ? "text-white/30 line-through" : "text-brand-400"}`}>
-                    {formatCurrency(settlement.amount, trip.currency)}
-                  </div>
-                  <div className="flex items-center gap-1 sm:gap-2 text-white/40 text-[10px] mt-0.5 sm:mt-1">
-                    <div className="h-px w-4 sm:w-12 bg-gradient-to-r from-transparent to-white/20" />
-                    <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <div className="h-px w-4 sm:w-12 bg-gradient-to-l from-transparent to-white/20" />
-                  </div>
-                </div>
+                  {/* Arrow */}
+                  <ArrowRight className="w-3.5 h-3.5 text-ink-faint flex-shrink-0" strokeWidth={1.75} />
 
-                {/* To */}
-                <div className="flex flex-col items-center">
-                  <div className="avatar w-10 h-10 text-sm overflow-hidden border border-white/10" style={{ background: settlement.settled ? "#64748b" : "linear-gradient(135deg, #10b981, #34d399)" }}>
+                  {/* To */}
+                  <div className="flex items-center gap-2 flex-shrink-0 flex-1 min-w-0">
                     {getMemberAvatar(settlement.to) ? (
-                      <img src={getMemberAvatar(settlement.to)} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={getMemberAvatar(settlement.to)}
+                        alt=""
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
                     ) : (
-                      getMemberName(settlement.to)[0]?.toUpperCase()
+                      <div className="avatar w-8 h-8 text-xs">
+                        {getMemberName(settlement.to)[0]?.toUpperCase()}
+                      </div>
                     )}
+                    <span className="text-sm text-ink truncate max-w-[8rem]">
+                      {isReceiver ? "You" : getMemberName(settlement.to)}
+                    </span>
                   </div>
-                  <div className="text-xs text-white/50 mt-1 max-w-[70px] text-center truncate">
-                    {getMemberName(settlement.to)}
-                  </div>
-                </div>
 
-                {/* Action */}
-                <div className="ml-auto">
-                  {settlement.settled ? (
-                    <div className="flex items-center gap-1 text-emerald-400 text-xs sm:text-sm px-2 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="hidden min-[450px]:inline">Paid</span>
-                    </div>
-                  ) : isPayer ? (
-                    <button
-                      onClick={() => setActivePayment(settlement)}
-                      disabled={saving}
-                      className="btn-primary bg-emerald-600 hover:bg-emerald-500 text-[10px] sm:text-sm px-3 sm:px-5 py-1.5 sm:py-2 whitespace-nowrap shadow-[0_0_15px_rgba(16,185,129,0.3)] border-none"
+                  {/* Amount */}
+                  <div className="text-right flex-shrink-0 mr-2">
+                    <div
+                      className={`numeric-display tnum text-base ${settlement.settled ? "text-ink-faint line-through" : isLargestOwed ? "text-highlight" : "text-ink"}`}
                     >
-                      Pay {formatCurrency(settlement.amount, trip.currency)}
-                    </button>
-                  ) : isReceiver ? (
-                    <div className="flex items-center gap-1 text-brand-400 text-xs sm:text-sm px-2 py-1.5 rounded-lg bg-brand-500/10 border border-brand-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)] font-semibold whitespace-nowrap">
-                      Will Receive
+                      {formatCurrency(settlement.amount, trip.currency)}
                     </div>
-                  ) : null}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+                  </div>
+
+                  {/* Action */}
+                  <div className="flex-shrink-0">
+                    {settlement.settled ? (
+                      <span className="badge badge--success">
+                        <CheckCircle className="w-3 h-3" />
+                        Paid
+                      </span>
+                    ) : isPayer ? (
+                      <button
+                        onClick={() => setActivePayment(settlement)}
+                        disabled={saving}
+                        className="btn-primary btn-sm"
+                      >
+                        Pay
+                      </button>
+                    ) : isReceiver ? (
+                      <span className="badge">
+                        <ArrowRight className="w-3 h-3" />
+                        Will receive
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* Payment Modal */}
       {activePayment && (
@@ -276,11 +302,38 @@ export default function SettlementTab({ tripId, members, trip }: Props) {
         />
       )}
 
-      {/* Individual balances (Now showing all trip balances from table) */}
-      <div className="glass-card p-6">
-        <h4 className="font-semibold mb-4">Group Balances</h4>
+      {/* All trip balances */}
+      <section>
+        <div className="eyebrow-rule mb-4">Group balances</div>
         <MemberBalances tripId={tripId} members={members} />
+      </section>
+    </div>
+  );
+}
+
+function HeadCell({
+  label,
+  value,
+  caption,
+  tone,
+}: {
+  label: string;
+  value: string;
+  caption?: string;
+  tone?: "success" | "danger";
+}) {
+  const valueColor =
+    tone === "success" ? "text-success" : tone === "danger" ? "text-danger" : "text-ink";
+  return (
+    <div className="bg-elevated px-6 py-6">
+      <div className="eyebrow mb-3">{label}</div>
+      <div
+        className={`numeric-display tnum text-3xl ${valueColor}`}
+        style={{ fontVariationSettings: "'opsz' 144" }}
+      >
+        {value}
       </div>
+      {caption && <div className="text-[11px] text-ink-muted mt-1 capitalize">{caption}</div>}
     </div>
   );
 }
@@ -306,33 +359,39 @@ function MemberBalances({ tripId, members }: { tripId: string; members: any[] })
     return m?.users?.full_name ?? m?.users?.email?.split("@")[0] ?? "Unknown";
   };
 
-  const getMemberAvatar = (userId: string) => {
-    const m = members.find((m) => m.user_id === userId);
-    return m?.users?.avatar_url;
-  };
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="skeleton h-10" />
+        ))}
+      </div>
+    );
+  }
+
+  if (balances.length === 0) {
+    return <div className="text-center text-ink-muted text-sm py-4">No active balances</div>;
+  }
 
   return (
-    <div className="space-y-3">
-      {loading ? (
-        <>
-          {[1, 2, 3].map((i) => <div key={i} className="skeleton h-12 w-full" />)}
-        </>
-      ) : balances.length === 0 ? (
-        <div className="text-center text-white/40 text-sm py-4">No active balances</div>
-      ) : (
-        balances.map((b) => (
-          <div key={b.id} className="flex items-center justify-between py-2 border-b border-white/8 last:border-0">
-            <div className="flex items-center gap-2 text-sm text-white/70">
-               <span className="font-medium text-white">{getMemberName(b.from_user_id)}</span>
-               <ArrowRight className="w-3 h-3 opacity-40" />
-               <span className="font-medium text-white">{getMemberName(b.to_user_id)}</span>
-            </div>
-            <div className={`font-semibold text-sm ${b.status === 'settled' ? 'text-white/20 line-through' : 'text-brand-400'}`}>
-              {formatCurrency(b.amount)}
-            </div>
+    <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)]">
+      {balances.map((b) => (
+        <li
+          key={b.id}
+          className="bg-elevated flex items-center justify-between px-4 py-3"
+        >
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-ink">{getMemberName(b.from_user_id)}</span>
+            <ArrowRight className="w-3 h-3 text-ink-faint" strokeWidth={1.75} />
+            <span className="text-ink">{getMemberName(b.to_user_id)}</span>
           </div>
-        ))
-      )}
-    </div>
+          <div
+            className={`numeric-display tnum text-sm ${b.status === "settled" ? "text-ink-faint line-through" : "text-ink"}`}
+          >
+            {formatCurrency(b.amount)}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

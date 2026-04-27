@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   X,
   Loader2,
   ReceiptText,
   Trash2,
-  Filter,
   Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -16,14 +14,12 @@ import {
   formatCurrency,
   autoCategorize,
   getCategoryIcon,
-  getCategoryColor,
 } from "@/lib/utils";
 import { format } from "date-fns";
 import { AppUser } from "@/lib/types";
 import AutoDetectExpense from "@/components/AutoDetectExpense";
 import { logExpenseAndNotify, deleteExpenseAndCleanup } from "@/lib/finance";
 import toast from "react-hot-toast";
-
 
 const CATEGORIES = ["food", "transport", "stay", "activities", "shopping", "other"] as const;
 
@@ -77,16 +73,22 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
   useEffect(() => {
     fetchExpenses();
 
-    // Real-time
+    // Real-time (channel name preserved)
     const channel = supabase
       .channel(`expenses-${tripId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "expenses", filter: `trip_id=eq.${tripId}` }, () => {
-        fetchExpenses();
-        onExpenseChange();
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expenses", filter: `trip_id=eq.${tripId}` },
+        () => {
+          fetchExpenses();
+          onExpenseChange();
+        }
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tripId, fetchExpenses, onExpenseChange]);
 
   // ESC closes the delete confirmation modal (but not while a delete is in
@@ -100,7 +102,6 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmDeleteId, deleting]);
 
-  // Auto-categorize when title changes
   const handleTitleChange = (title: string) => {
     setForm((f) => ({
       ...f,
@@ -220,357 +221,403 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
   }, {} as Record<string, number>);
 
   return (
-    <div className="space-y-6">
-      {/* Category Summary */}
-      <div className="grid grid-cols-2 min-[450px]:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setFilterCategory(filterCategory === cat ? "all" : cat)}
-            className={`glass-card p-3 sm:p-4 text-center transition-all duration-300 ${
-              filterCategory === cat ? "border-brand-400 shadow-[0_0_20px_rgba(34,211,238,0.2)] bg-brand-500/10" : "hover:border-white/20 hover:bg-white/5"
-            }`}
-          >
-            <div className="flex justify-center mb-2">
-              {(() => {
-                const Icon = getCategoryIcon(cat);
-                return <Icon className={`w-6 h-6 ${filterCategory === cat ? "text-brand-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" : "text-white/70"}`} />;
-              })()}
-            </div>
-            <div className="text-xs font-semibold tracking-wider uppercase">{cat}</div>
-            <div className="text-[10px] text-brand-300/70 mt-1 font-medium">
-              {formatCurrency(categoryTotals[cat])}
-            </div>
-          </button>
-        ))}
+    <div>
+      {/* Category strip */}
+      <div className="mb-8">
+        <div className="eyebrow mb-3">By category</div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-px bg-default rounded-lg overflow-hidden border border-subtle">
+          {CATEGORIES.map((cat) => {
+            const Icon = getCategoryIcon(cat);
+            const active = filterCategory === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(active ? "all" : cat)}
+                className={`relative bg-elevated p-3 text-left transition-colors ${active ? "" : "hover:bg-overlay"}`}
+              >
+                {active && (
+                  <span
+                    className="absolute left-0 right-0 bottom-0 h-0.5 bg-accent"
+                    aria-hidden
+                  />
+                )}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Icon className={`w-3.5 h-3.5 ${active ? "text-accent" : "text-ink-muted"}`} strokeWidth={1.75} />
+                  <span className={`text-[11px] uppercase tracking-wider font-semibold ${active ? "text-ink" : "text-ink-secondary"}`}>
+                    {cat}
+                  </span>
+                </div>
+                <div className="numeric-display tnum text-sm text-ink">
+                  {formatCurrency(categoryTotals[cat])}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* AutoDetect callout */}
+      <AutoDetectExpense onExpenseDetected={handleAutoDetected} />
+
+      {/* Search + Add */}
+      <div className="flex items-center gap-2 mb-6 mt-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint" />
           <input
             className="input-field pl-10"
-            placeholder="Search expenses..."
+            placeholder="Search expenses…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="btn-primary"
-          id="add-expense-btn"
-        >
-          <Plus className="w-4 h-4" /> Add Expense
+        <button onClick={() => setShowAdd(true)} className="btn-primary" id="add-expense-btn">
+          <Plus className="w-3.5 h-3.5" /> Add
         </button>
       </div>
 
-      {/* Expense List */}
+      {/* Summary line */}
+      {!loading && filtered.length > 0 && (
+        <div className="flex items-baseline justify-between text-sm pb-3 border-b border-default">
+          <span className="text-ink-muted">
+            {filtered.length} {filtered.length === 1 ? "entry" : "entries"}
+            {filterCategory !== "all" && (
+              <span className="ml-2 text-ink-subtle">
+                · filtered by <span className="text-ink-secondary capitalize">{filterCategory}</span>
+              </span>
+            )}
+          </span>
+          <span className="numeric-display tnum text-ink">
+            {formatCurrency(totalFiltered)}
+          </span>
+        </div>
+      )}
+
+      {/* Expense list */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="skeleton h-20" />)}
+        <div className="space-y-3 mt-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-14" />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <div className="flex justify-center mb-4"><ReceiptText className="w-12 h-12 text-brand-400" /></div>
-          <h3 className="font-semibold text-lg mb-2">No expenses yet</h3>
-          <p className="text-white/40 text-sm">
-            {searchQuery ? "No expenses match your search." : "Add your first expense to start tracking!"}
+        <div className="empty-state">
+          <div className="empty-state__icon">
+            <ReceiptText className="w-10 h-10" strokeWidth={1.5} />
+          </div>
+          <div className="empty-state__title">No expenses yet</div>
+          <p className="empty-state__caption">
+            {searchQuery
+              ? "No expenses match your search."
+              : "Log the first one to start the ledger."}
           </p>
+          {!searchQuery && (
+            <button onClick={() => setShowAdd(true)} className="btn-primary">
+              <Plus className="w-3.5 h-3.5" /> Add expense
+            </button>
+          )}
         </div>
       ) : (
-        <>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-white/50">{filtered.length} expense{filtered.length !== 1 ? "s" : ""}</span>
-            <span className="text-brand-400 font-semibold">Total: {formatCurrency(totalFiltered)}</span>
-          </div>
-          <div className="space-y-4">
-            {filtered.map((expense, i) => (
-              <motion.div
+        <ul className="divide-y divide-[color:var(--border-subtle)]">
+          {filtered.map((expense) => {
+            const Icon = getCategoryIcon(expense.category);
+            const isCurrentUser = expense.paid_by === user?.id;
+            return (
+              <li
                 key={expense.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="glass-card-hover p-3 sm:p-5 flex items-center gap-3 sm:gap-5 group transition-all duration-300"
+                className="group py-4 flex items-center gap-4"
               >
-                <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center border border-white/5 shadow-inner bg-dark-800/80 flex-shrink-0`}>
-                  {(() => {
-                    const Icon = getCategoryIcon(expense.category);
-                    // Use neon highlights based on who paid
-                    const isCurrentUser = expense.paid_by === user?.id;
-                    return <Icon className={`w-6 h-6 ${isCurrentUser ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]"}`} />;
-                  })()}
+                <div className="w-9 h-9 rounded-md bg-tint flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
                 </div>
-
                 <div className="flex-1 min-w-0">
-                  <div className="font-display font-medium text-base sm:text-lg text-white truncate mb-0.5 sm:mb-1">{expense.title}</div>
-                  <div className="text-[10px] sm:text-xs text-white/40 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <span className="text-white/60">Paid by {getMemberName(expense.paid_by)}</span>
-                    <span className="hidden min-[400px]:inline">•</span>
+                  <div className="text-ink truncate text-sm font-medium">{expense.title}</div>
+                  <div className="text-[11px] text-ink-muted mt-0.5 flex flex-wrap items-center gap-x-2">
+                    <span>
+                      {isCurrentUser ? (
+                        <span className="text-success">You paid</span>
+                      ) : (
+                        <>Paid by <span className="text-ink-secondary">{getMemberName(expense.paid_by)}</span></>
+                      )}
+                    </span>
+                    <span className="text-ink-faint">·</span>
                     <span>Split {expense.split_among.length} ways</span>
-                    <span className="hidden min-[400px]:inline">•</span>
-                    <span className="uppercase tracking-wider">{format(new Date(expense.created_at), "MMM d")}</span>
+                    <span className="text-ink-faint">·</span>
+                    <span className="capitalize">{expense.category}</span>
+                    <span className="text-ink-faint">·</span>
+                    <span>{format(new Date(expense.created_at), "MMM d")}</span>
                   </div>
                 </div>
-
                 <div className="text-right flex-shrink-0">
-                  <div className="font-display font-medium text-base sm:text-xl text-white mb-0.5 drop-shadow-md">
+                  <div className="numeric-display tnum text-base text-ink">
                     {formatCurrency(expense.amount)}
                   </div>
-                  <div className="text-[9px] sm:text-[10px] uppercase tracking-widest text-brand-400">
+                  <div className="text-[10px] text-ink-faint mt-0.5">
                     {formatCurrency(expense.amount / expense.split_among.length)} each
                   </div>
                 </div>
-
                 <button
                   onClick={() => setConfirmDeleteId(expense.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-2 text-rose-400"
+                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 btn-icon text-danger transition-opacity"
                   aria-label={`Delete ${expense.title}`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
                 </button>
-              </motion.div>
-            ))}
-          </div>
-        </>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {/* Add Expense Modal */}
-      <AnimatePresence>
-        {showAdd && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAdd(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative glass-card w-full max-w-md max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between p-6 border-b border-white/8 sticky top-0 bg-dark-800/90 backdrop-blur-lg z-10 rounded-t-2xl">
-                <h3 className="font-display font-bold text-lg">Add Expense</h3>
-                <button onClick={() => setShowAdd(false)} className="btn-ghost p-2">
-                  <X className="w-5 h-5" />
-                </button>
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setShowAdd(false)} className="absolute inset-0 modal-backdrop" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-expense-heading"
+            className="relative modal-panel w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+          >
+            <header className="flex items-center justify-between px-6 py-4 border-b border-subtle">
+              <h3 id="add-expense-heading" className="font-display text-2xl text-ink" style={{ fontWeight: 500 }}>
+                Add expense
+              </h3>
+              <button onClick={() => setShowAdd(false)} className="btn-icon" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </header>
+
+            <div className="overflow-y-auto px-6 py-5 space-y-5 flex-1">
+              <div>
+                <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1.5 block">
+                  Title <span className="text-danger normal-case font-normal tracking-normal">*</span>
+                </label>
+                <input
+                  id="expense-title"
+                  className="input-field"
+                  placeholder="e.g. Zomato dinner, Uber to hotel…"
+                  value={form.title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                />
+                <p className="text-[11px] text-ink-faint mt-1">Auto-categorizes from common keywords.</p>
               </div>
 
-              <div className="p-6 space-y-4">
-                {/* Auto-detect UPI/SMS */}
-                <AutoDetectExpense onExpenseDetected={handleAutoDetected} />
-
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-white/60 mb-1.5 block">Title * (auto-categorizes)</label>
+                  <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1.5 block">
+                    Amount <span className="text-danger normal-case font-normal tracking-normal">*</span>
+                  </label>
                   <input
-                    id="expense-title"
-                    className="input-field"
-                    placeholder="e.g. Zomato dinner, Uber to hotel..."
-                    value={form.title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
+                    id="expense-amount"
+                    type="number"
+                    className="input-field tnum"
+                    placeholder="0"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-white/60 mb-1.5 block">Amount *</label>
-                    <input
-                      id="expense-amount"
-                      type="number"
-                      className="input-field"
-                      placeholder="0"
-                      value={form.amount}
-                      onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/60 mb-1.5 block">Category</label>
-                    <select
-                      className="select-field"
-                      value={form.category}
-                      onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as any }))}
-                    >
-                      {CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
                 <div>
-                  <label className="text-sm text-white/60 mb-1.5 block">Paid By *</label>
+                  <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1.5 block">
+                    Category
+                  </label>
                   <select
-                    className="select-field"
-                    value={form.paid_by}
-                    onChange={(e) => setForm((f) => ({ ...f, paid_by: e.target.value }))}
+                    className="select-field capitalize"
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as any }))}
                   >
-                    {members.map((m) => (
-                      <option key={m.user_id} value={m.user_id}>
-                        {getMemberName(m.user_id)}
-                        {m.user_id === user?.id ? " (You)" : ""}
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
                       </option>
                     ))}
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-sm text-white/60 mb-2 block">
-                    Split Among * ({form.split_among.length} selected)
+              <div>
+                <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1.5 block">
+                  Paid by <span className="text-danger normal-case font-normal tracking-normal">*</span>
+                </label>
+                <select
+                  className="select-field"
+                  value={form.paid_by}
+                  onChange={(e) => setForm((f) => ({ ...f, paid_by: e.target.value }))}
+                >
+                  {members.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {getMemberName(m.user_id)}
+                      {m.user_id === user?.id ? " (You)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-baseline justify-between mb-2">
+                  <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle">
+                    Split among <span className="text-danger normal-case font-normal tracking-normal">*</span>
                   </label>
-                  <div className="space-y-2">
-                    {members.map((m) => (
-                      <label
-                        key={m.user_id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                          form.split_among.includes(m.user_id)
-                            ? "border-brand-500/40 bg-brand-500/10"
-                            : "border-white/10 bg-white/5 hover:border-white/20"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={form.split_among.includes(m.user_id)}
-                          onChange={() => toggleSplitMember(m.user_id)}
-                        />
-                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                          form.split_among.includes(m.user_id) ? "bg-brand-500 border-brand-500" : "border-white/30"
-                        }`}>
-                          {form.split_among.includes(m.user_id) && (
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="avatar w-7 h-7 text-xs flex-shrink-0 overflow-hidden border border-white/10">
-                          {getMemberAvatar(m.user_id) ? (
-                            <img src={getMemberAvatar(m.user_id)} alt="" className="w-full h-full object-cover" />
+                  <span className="text-[11px] text-ink-muted">
+                    {form.split_among.length} of {members.length}
+                  </span>
+                </div>
+                <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)]">
+                  {members.map((m) => {
+                    const checked = form.split_among.includes(m.user_id);
+                    const avatar = getMemberAvatar(m.user_id);
+                    const name = getMemberName(m.user_id);
+                    return (
+                      <li key={m.user_id}>
+                        <label
+                          className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${checked ? "bg-accent-soft" : "hover:bg-tint-soft"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={checked}
+                            onChange={() => toggleSplitMember(m.user_id)}
+                          />
+                          <span
+                            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${checked ? "bg-accent border-accent" : "border-strong"}`}
+                            aria-hidden
+                          >
+                            {checked && (
+                              <svg className="w-2.5 h-2.5 text-[color:var(--accent-on)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </span>
+                          {avatar ? (
+                            <img src={avatar} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                           ) : (
-                            getMemberName(m.user_id)[0]?.toUpperCase()
+                            <div className="avatar w-7 h-7 text-[11px] flex-shrink-0">
+                              {name[0]?.toUpperCase()}
+                            </div>
                           )}
-                        </div>
-                        <span className="text-sm">{getMemberName(m.user_id)}</span>
-                        {m.user_id === user?.id && (
-                          <span className="text-xs text-white/30 ml-auto">(You)</span>
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                  {form.split_among.length > 0 && form.amount && (
-                    <div className="mt-2 text-sm text-emerald-400 text-center">
-                      Each pays: {formatCurrency(parseFloat(form.amount) / form.split_among.length)}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-white/60 mb-1.5 block">Note (optional)</label>
-                  <input
-                    className="input-field"
-                    placeholder="Any additional notes..."
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-
-                {formError && (
-                  <div className="px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
-                    {formError}
-                  </div>
+                          <span className="text-sm text-ink flex-1 truncate">{name}</span>
+                          {m.user_id === user?.id && (
+                            <span className="text-[10px] text-ink-faint">You</span>
+                          )}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {form.split_among.length > 0 && form.amount && (
+                  <p className="mt-2 text-xs text-ink-secondary">
+                    Each pays{" "}
+                    <span className="numeric-display tnum text-ink">
+                      {formatCurrency(parseFloat(form.amount) / form.split_among.length)}
+                    </span>
+                  </p>
                 )}
               </div>
 
-              <div className="flex gap-3 p-6 border-t border-white/8">
-                <button onClick={() => setShowAdd(false)} className="btn-secondary flex-1">
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="btn-primary flex-1"
-                  id="save-expense-btn"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Expense"}
-                </button>
+              <div>
+                <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1.5 block">
+                  Note
+                </label>
+                <input
+                  className="input-field"
+                  placeholder="Optional context"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                />
               </div>
-            </motion.div>
+
+              {formError && (
+                <div className="px-4 py-3 rounded-lg border border-danger bg-danger-soft text-danger text-sm">
+                  {formError}
+                </div>
+              )}
+            </div>
+
+            <footer className="flex gap-2 px-6 py-4 border-t border-subtle">
+              <button onClick={() => setShowAdd(false)} className="btn-secondary flex-1">
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="btn-primary flex-1"
+                id="save-expense-btn"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save expense"}
+              </button>
+            </footer>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {confirmDeleteId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !deleting && setConfirmDeleteId(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="delete-expense-heading"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative glass-card w-full max-w-sm"
-            >
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center flex-shrink-0">
-                    <Trash2 className="w-5 h-5 text-rose-400" />
-                  </div>
-                  <h3 id="delete-expense-heading" className="font-display font-bold text-lg">Delete expense?</h3>
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => !deleting && setConfirmDeleteId(null)}
+            className="absolute inset-0 modal-backdrop"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-expense-heading"
+            className="relative modal-panel w-full max-w-sm"
+          >
+            <div className="px-6 py-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-md bg-danger-soft border border-danger flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-4 h-4 text-danger" strokeWidth={1.75} />
                 </div>
-                {(() => {
-                  const target = expenses.find((e) => e.id === confirmDeleteId);
-                  if (!target) return null;
-                  const isOwn = target.paid_by === user?.id;
-                  return (
-                    <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      <div className="flex items-center justify-between gap-3 mb-1">
-                        <span className="font-semibold text-white truncate">{target.title}</span>
-                        <span className="text-brand-400 font-display text-sm flex-shrink-0">{formatCurrency(target.amount)}</span>
-                      </div>
-                      <div className="text-xs text-white/50">
-                        Paid by {isOwn ? "you" : getMemberName(target.paid_by)}
-                      </div>
+                <h3
+                  id="delete-expense-heading"
+                  className="font-display text-2xl text-ink"
+                  style={{ fontWeight: 500 }}
+                >
+                  Delete expense?
+                </h3>
+              </div>
+              {(() => {
+                const target = expenses.find((e) => e.id === confirmDeleteId);
+                if (!target) return null;
+                const isOwn = target.paid_by === user?.id;
+                return (
+                  <div className="mb-4 rounded-md border border-subtle bg-tint-soft px-3.5 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-ink truncate">{target.title}</span>
+                      <span className="numeric-display tnum text-sm text-ink flex-shrink-0">
+                        {formatCurrency(target.amount)}
+                      </span>
                     </div>
-                  );
-                })()}
-                <p className="text-sm text-white/60">
-                  This will remove the expense for everyone in the trip and recalculate balances. This can&apos;t be undone.
-                </p>
-              </div>
-              <div className="flex gap-3 p-6 pt-0">
-                <button
-                  onClick={() => setConfirmDeleteId(null)}
-                  disabled={deleting}
-                  autoFocus
-                  className="btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={performDelete}
-                  disabled={deleting}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
-                </button>
-              </div>
-            </motion.div>
+                    <div className="text-[11px] text-ink-muted mt-1">
+                      Paid by {isOwn ? "you" : getMemberName(target.paid_by)}
+                    </div>
+                  </div>
+                );
+              })()}
+              <p className="text-sm text-ink-muted">
+                Removes the expense for everyone and recalculates balances.
+                This can&apos;t be undone.
+              </p>
+            </div>
+            <div className="flex gap-2 px-6 pb-5">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={deleting}
+                autoFocus
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={performDelete}
+                disabled={deleting}
+                className="btn-destructive btn-destructive--filled flex-1"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

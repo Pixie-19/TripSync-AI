@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   Brain,
   Sparkles,
   Loader2,
   MapPin,
   Clock,
-  DollarSign,
   ChevronDown,
   ChevronUp,
   RefreshCw,
@@ -67,18 +65,14 @@ export default function ItineraryTab({ trip, user }: Props) {
 
       const json = await response.json();
       const data: GeneratedItinerary = json.data;
-      
+
       if (!data) {
         throw new Error(json.error || "No data returned from AI");
       }
 
       setItinerary(data);
 
-      // Save to DB
-      await supabase
-        .from("trips")
-        .update({ itinerary: data as any })
-        .eq("id", trip.id);
+      await supabase.from("trips").update({ itinerary: data as any }).eq("id", trip.id);
     } catch (e: any) {
       setError(e.message ?? "Failed to generate itinerary");
     } finally {
@@ -88,40 +82,39 @@ export default function ItineraryTab({ trip, user }: Props) {
 
   if (!itinerary) {
     return (
-      <div className="glass-card p-6 sm:p-12 text-center">
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="text-7xl mb-6"
-        >
-          <Brain className="w-12 h-12 text-brand-400 mx-auto" />
-        </motion.div>
-        <h3 className="font-display font-bold text-2xl mb-3">AI Itinerary Generator</h3>
-        <p className="text-white/50 mb-2 max-w-md mx-auto">
-          Let AI create a personalized day-wise itinerary for your trip to{" "}
-          <span className="text-brand-400">{trip.destination}</span>.
+      <div className="empty-state max-w-xl mx-auto py-12">
+        <div className="empty-state__icon">
+          <Brain className="w-10 h-10" strokeWidth={1.5} />
+        </div>
+        <div className="empty-state__title">AI itinerary generator</div>
+        <p className="empty-state__caption">
+          Let AI craft a day-wise plan for{" "}
+          <span className="text-ink-secondary">{trip.destination}</span> on a budget of{" "}
+          <span className="numeric-display tnum text-ink-secondary">
+            {formatCurrency(trip.budget, trip.currency)}
+          </span>{" "}
+          for {trip.num_people} people
+          {trip.preferences?.length > 0 && ` · ${trip.preferences.join(", ")}`}.
         </p>
-        <p className="text-white/30 text-sm mb-8">
-          Based on your budget of {formatCurrency(trip.budget, trip.currency)} for {trip.num_people} people
-          {trip.preferences?.length > 0 && ` • ${trip.preferences.join(", ")}`}
-        </p>
-
         {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
+          <div className="mb-5 px-4 py-3 rounded-lg border border-danger bg-danger-soft text-danger text-sm max-w-md mx-auto">
             {error}
           </div>
         )}
-
         <button
           onClick={generateItinerary}
           disabled={loading}
-          className="btn-primary text-lg px-8 py-4"
+          className="btn-primary btn-lg"
           id="generate-itinerary-btn"
         >
           {loading ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Generating magic...</>
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> Generating…
+            </>
           ) : (
-            <><Sparkles className="w-5 h-5" /> Generate AI Itinerary</>
+            <>
+              <Sparkles className="w-4 h-4" /> Generate AI itinerary
+            </>
           )}
         </button>
       </div>
@@ -129,42 +122,56 @@ export default function ItineraryTab({ trip, user }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Itinerary Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-start justify-between mb-4">
+    <div className="space-y-8">
+      {/* Header */}
+      <header>
+        <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Brain className="w-5 h-5 text-brand-400" />
-              <span className="text-brand-400 text-sm font-medium">AI Generated</span>
+              <span className="badge">
+                <Brain className="w-3 h-3" strokeWidth={2} />
+                AI generated
+              </span>
             </div>
-            <h3 className="font-display font-bold text-lg sm:text-xl mb-1">{trip.destination} Itinerary</h3>
-            <p className="text-white/50 text-xs sm:text-sm leading-relaxed">{itinerary.summary}</p>
+            <h3
+              className="font-display text-3xl text-ink mb-2"
+              style={{ fontWeight: 500, letterSpacing: "-0.015em", fontVariationSettings: "'opsz' 144" }}
+            >
+              {trip.destination}
+            </h3>
+            <p className="text-sm text-ink-secondary leading-relaxed max-w-3xl">
+              {itinerary.summary}
+            </p>
           </div>
           <button
             onClick={generateItinerary}
             disabled={loading}
-            className="btn-ghost text-xs sm:text-sm p-2 sm:px-4"
+            className="btn-secondary btn-sm flex-shrink-0"
             id="regenerate-btn"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Regenerate</span>
           </button>
         </div>
 
         {/* Highlights */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {itinerary.highlights?.map((h, i) => (
-            <span key={i} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs sm:text-sm transition-colors hover:bg-brand-500/20">
-              <Star className="w-3 h-3 text-brand-400 fill-brand-400/20" />
-              {h}
-            </span>
-          ))}
-        </div>
+        {itinerary.highlights && itinerary.highlights.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-subtle">
+            {itinerary.highlights.map((h, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tint-soft text-xs text-ink-secondary"
+              >
+                <Star className="w-3 h-3 text-highlight" strokeWidth={2} />
+                {h}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Budget Breakdown */}
         {itinerary.budgetBreakdown && (
-          <div className="grid grid-cols-2 min-[400px]:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-default rounded-lg overflow-hidden border border-subtle mt-6">
             {Object.entries(itinerary.budgetBreakdown).map(([key, val]) => {
               const icons: Record<string, any> = {
                 accommodation: Building2,
@@ -173,54 +180,61 @@ export default function ItineraryTab({ trip, user }: Props) {
                 activities: Ticket,
                 miscellaneous: Briefcase,
               };
+              const Icon = icons[key] ?? Briefcase;
               return (
-                <div key={key} className="glass-card-hover p-2 sm:p-3 text-center">
-                  <div className="flex justify-center mb-1.5 sm:mb-2 mt-1">
-                    {(() => {
-                      const Icon = icons[key] ?? Briefcase;
-                      return <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/70" />;
-                    })()}
+                <div key={key} className="bg-elevated px-4 py-3.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Icon className="w-3.5 h-3.5 text-ink-muted" strokeWidth={1.75} />
+                    <span className="eyebrow capitalize">
+                      {key.replace("miscellaneous", "Misc.")}
+                    </span>
                   </div>
-                  <div className="text-brand-400 font-semibold text-xs sm:text-sm">
+                  <div className="numeric-display tnum text-base text-ink">
                     {formatCurrency(val as number, trip.currency)}
                   </div>
-                  <div className="text-white/40 text-[10px] sm:text-xs capitalize">{key.replace("miscellaneous", "misc")}</div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
+      </header>
 
       {/* Days */}
-      <div className="space-y-3">
-        {itinerary.days?.map((day, i) => (
-          <DayCard
-            key={i}
-            day={day}
-            currency={trip.currency}
-            isExpanded={expandedDay === i}
-            onToggle={() => setExpandedDay(expandedDay === i ? -1 : i)}
-          />
-        ))}
-      </div>
+      <section>
+        <div className="eyebrow-rule mb-4">Day-by-day</div>
+        <div className="space-y-2">
+          {itinerary.days?.map((day, i) => {
+            // Find max-cost slot for saffron rule
+            const slots = [day.morning, day.afternoon, day.evening];
+            const maxCost = Math.max(...slots.map((s) => s?.cost ?? 0));
+            return (
+              <DayCard
+                key={i}
+                day={day}
+                index={i}
+                currency={trip.currency}
+                isExpanded={expandedDay === i}
+                onToggle={() => setExpandedDay(expandedDay === i ? -1 : i)}
+                maxCost={maxCost}
+              />
+            );
+          })}
+        </div>
+      </section>
 
       {/* General Tips */}
       {itinerary.tips && itinerary.tips.length > 0 && (
-        <div className="glass-card p-6">
-          <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            Travel Tips
-          </h4>
-          <ul className="space-y-2">
+        <section className="surface-card p-6">
+          <div className="eyebrow mb-3">Tips</div>
+          <ul className="space-y-2.5">
             {itinerary.tips.map((tip, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-white/60">
-                <span className="text-amber-400 mt-0.5">💡</span>
+              <li key={i} className="flex items-start gap-3 text-sm text-ink-secondary leading-relaxed">
+                <span className="inline-block w-1 h-1 rounded-full bg-highlight mt-2 flex-shrink-0" />
                 {tip}
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
     </div>
   );
@@ -228,108 +242,115 @@ export default function ItineraryTab({ trip, user }: Props) {
 
 function DayCard({
   day,
+  index,
   currency,
   isExpanded,
   onToggle,
+  maxCost,
 }: {
   day: ItineraryDay;
+  index: number;
   currency: string;
   isExpanded: boolean;
   onToggle: () => void;
+  maxCost: number;
 }) {
+  const dayLabel = String(day.day).padStart(2, "0");
   const timeSlots = [
-    { label: "Morning", data: day.morning, icon: <Sun className="w-4 h-4 text-amber-400" />, color: "border-amber-500/20 bg-amber-500/5" },
-    { label: "Afternoon", data: day.afternoon, icon: <Sunset className="w-4 h-4 text-orange-400" />, color: "border-orange-500/20 bg-orange-500/5" },
-    { label: "Evening", data: day.evening, icon: <Moon className="w-4 h-4 text-violet-400" />, color: "border-violet-500/20 bg-violet-500/5" },
+    { key: "morning", label: "Morning", data: day.morning, icon: Sun },
+    { key: "afternoon", label: "Afternoon", data: day.afternoon, icon: Sunset },
+    { key: "evening", label: "Evening", data: day.evening, icon: Moon },
   ];
 
   return (
-    <div className="glass-card overflow-hidden">
+    <article className="surface-card overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-white/3 transition-colors"
+        className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-tint-soft transition-colors"
         id={`day-${day.day}-toggle`}
       >
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-violet-500/20 border border-brand-500/20 flex items-center justify-center font-display font-bold text-brand-400">
-            {day.day}
-          </div>
-          <div className="min-w-0">
-            <h4 className="font-semibold text-sm sm:text-base truncate">{day.theme}</h4>
-            <p className="text-[10px] sm:text-xs text-white/40 flex items-center gap-1.5 truncate">
-              <Calendar className="w-3 h-3" /> {day.date}
-            </p>
-          </div>
+        <div className="flex flex-col items-start flex-shrink-0">
+          <span className="eyebrow text-ink-faint">Day</span>
+          <span className="serial-numeral text-3xl">{dayLabel}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-brand-400 font-semibold text-sm">
-              {formatCurrency(day.estimatedCost, currency)}
-            </div>
-            <div className="text-white/40 text-xs">est. cost</div>
-          </div>
-          {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-white/40" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-white/40" />
-          )}
+        <div className="flex-1 min-w-0">
+          <h4
+            className="font-display text-lg text-ink truncate"
+            style={{ fontWeight: 500, letterSpacing: "-0.01em" }}
+          >
+            {day.theme}
+          </h4>
+          <p className="text-[11px] text-ink-muted flex items-center gap-1.5 mt-0.5">
+            <Calendar className="w-3 h-3" strokeWidth={1.75} />
+            {day.date}
+          </p>
         </div>
+        <div className="text-right flex-shrink-0">
+          <div className="numeric-display tnum text-ink text-base">
+            {formatCurrency(day.estimatedCost, currency)}
+          </div>
+          <div className="text-[10px] text-ink-faint mt-0.5">est. cost</div>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4 text-ink-muted flex-shrink-0" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-ink-muted flex-shrink-0" />
+        )}
       </button>
 
       {isExpanded && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className="border-t border-white/8 p-5 space-y-3"
-        >
-          {timeSlots.map((slot) => (
-            <div key={slot.label} className={`rounded-xl border p-4 ${slot.color}`}>
-              <div className="flex items-center gap-2 mb-3">
-                {slot.icon}
-                <span className="font-medium text-sm">{slot.label}</span>
-              </div>
-              {slot.data && (
-                <div>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h4 className="font-semibold text-white">{slot.data.title}</h4>
-                      <p className="text-white/50 text-sm mt-1">{slot.data.description}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-emerald-400 font-semibold text-sm">
-                        {formatCurrency(slot.data.cost, currency)}
-                      </div>
+        <div className="border-t border-subtle px-5 py-5 space-y-4">
+          {timeSlots.map((slot) => {
+            const Icon = slot.icon;
+            if (!slot.data) return null;
+            const isMax = slot.data.cost === maxCost && maxCost > 0;
+            return (
+              <div key={slot.key} className="relative pl-4">
+                {isMax && (
+                  <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-highlight" aria-label="Highest cost slot" />
+                )}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Icon className="w-3.5 h-3.5 text-ink-muted" strokeWidth={1.75} />
+                  <span className="eyebrow">{slot.label}</span>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h5 className="text-sm font-medium text-ink">{slot.data.title}</h5>
+                    <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{slot.data.description}</p>
+                    <div className="flex items-center gap-4 mt-2 text-[11px] text-ink-faint">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" strokeWidth={1.75} />
+                        {slot.data.location}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" strokeWidth={1.75} />
+                        {slot.data.duration}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 mt-3 text-xs text-white/40">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {slot.data.location}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {slot.data.duration}
-                    </span>
+                  <div className="numeric-display tnum text-sm text-ink flex-shrink-0">
+                    {formatCurrency(slot.data.cost, currency)}
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
 
           {day.tips && day.tips.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-white/8">
-              <div className="text-xs text-white/40 font-medium mb-2">Day Tips</div>
-              {day.tips.map((tip, i) => (
-                <div key={i} className="text-xs text-white/50 flex gap-2">
-                  <span>💡</span>
-                  <span>{tip}</span>
-                </div>
-              ))}
+            <div className="mt-3 pt-3 border-t border-subtle">
+              <div className="eyebrow mb-2">Day notes</div>
+              <ul className="space-y-1">
+                {day.tips.map((tip, i) => (
+                  <li key={i} className="text-xs text-ink-muted flex gap-2">
+                    <span className="text-ink-faint">·</span>
+                    {tip}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
-        </motion.div>
+        </div>
       )}
-    </div>
+    </article>
   );
 }

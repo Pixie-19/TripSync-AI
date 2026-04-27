@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { Bell, Check, Receipt, Handshake, Info } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Bell, Receipt, Handshake, Info } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function NotificationsDropdown() {
@@ -18,9 +17,13 @@ export default function NotificationsDropdown() {
 
     const channel = supabase
       .channel(`notifications-${user.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
-        setNotifications(prev => [payload.new, ...prev]);
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          setNotifications((prev) => [payload.new, ...prev]);
+        }
+      )
       .subscribe();
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -30,10 +33,11 @@ export default function NotificationsDropdown() {
     };
     document.addEventListener("mousedown", handleClickOutside);
 
-    return () => { 
+    return () => {
       supabase.removeChannel(channel);
       document.removeEventListener("mousedown", handleClickOutside);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const fetchNotifications = async () => {
@@ -48,75 +52,104 @@ export default function NotificationsDropdown() {
 
   const markAsRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
   const markAllAsRead = async () => {
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user?.id).eq("is_read", false);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", user?.id)
+      .eq("is_read", false);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="btn-icon relative"
+        aria-label="Notifications"
       >
-        <Bell className="w-5 h-5 text-white" />
+        <Bell className="w-4 h-4" strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-dark-900" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-highlight rounded-full" />
         )}
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-80 sm:w-96 glass-card border border-white/10 shadow-2xl z-50 overflow-hidden"
-          >
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-dark-800/90">
-              <h3 className="font-semibold">Notifications</h3>
-              {unreadCount > 0 && (
-                <button onClick={markAllAsRead} className="text-xs text-brand-400 hover:text-brand-300">
-                  Mark all as read
-                </button>
-              )}
-            </div>
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 modal-panel z-50 overflow-hidden">
+          <header className="px-4 py-3 border-b border-subtle flex items-center justify-between">
+            <span className="font-display text-base text-ink" style={{ fontWeight: 500 }}>
+              Notifications
+            </span>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-[11px] text-accent hover:text-accent-hover"
+              >
+                Mark all read
+              </button>
+            )}
+          </header>
 
-            <div className="max-h-[350px] overflow-y-auto custom-scrollbar bg-dark-900/95">
-              {notifications.length === 0 ? (
-                <div className="p-8 text-center text-white/40 text-sm">No notifications yet.</div>
-              ) : (
-                notifications.map(n => (
-                  <div 
-                    key={n.id} 
-                    onClick={() => markAsRead(n.id)}
-                    className={`p-4 border-b border-white/5 flex gap-3 cursor-pointer transition-colors ${!n.is_read ? 'bg-brand-500/10 hover:bg-brand-500/20' : 'hover:bg-white/5'}`}
-                  >
-                    <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${n.type === 'expense' ? 'bg-rose-500/20 text-rose-400' : n.type === 'payment' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-brand-500/20 text-brand-400'}`}>
-                      {n.type === 'expense' ? <Receipt className="w-4 h-4" /> : n.type === 'payment' ? <Handshake className="w-4 h-4" /> : <Info className="w-4 h-4" />}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm ${!n.is_read ? 'text-white' : 'text-white/70'}`}>{n.message}</p>
-                      <span className="text-[10px] text-white/40 mt-1 block">
-                        {new Date(n.created_at).toLocaleDateString()} at {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    {!n.is_read && (
-                      <div className="w-2 h-2 rounded-full bg-brand-400 self-center flex-shrink-0" />
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="max-h-[360px] overflow-y-auto custom-scrollbar">
+            {notifications.length === 0 ? (
+              <div className="px-4 py-8 text-center text-ink-muted text-sm">
+                No notifications yet.
+              </div>
+            ) : (
+              <ul className="divide-y divide-[color:var(--border-subtle)]">
+                {notifications.map((n) => (
+                  <li key={n.id}>
+                    <button
+                      onClick={() => markAsRead(n.id)}
+                      className={`w-full text-left px-4 py-3 flex gap-3 transition-colors ${!n.is_read ? "bg-accent-soft hover:bg-accent-soft-strong" : "hover:bg-tint-soft"}`}
+                    >
+                      <div
+                        className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
+                          n.type === "expense"
+                            ? "bg-danger-soft text-danger"
+                            : n.type === "payment"
+                            ? "bg-success-soft text-success"
+                            : "bg-tint text-ink-muted"
+                        }`}
+                      >
+                        {n.type === "expense" ? (
+                          <Receipt className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        ) : n.type === "payment" ? (
+                          <Handshake className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        ) : (
+                          <Info className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm leading-snug ${!n.is_read ? "text-ink" : "text-ink-secondary"}`}
+                        >
+                          {n.message}
+                        </p>
+                        <span className="text-[10px] text-ink-faint mt-1 block">
+                          {new Date(n.created_at).toLocaleDateString()} ·{" "}
+                          {new Date(n.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {!n.is_read && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent self-center flex-shrink-0" />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
