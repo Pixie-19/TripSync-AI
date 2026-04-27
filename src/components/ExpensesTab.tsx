@@ -89,6 +89,17 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
     return () => { supabase.removeChannel(channel); };
   }, [tripId, fetchExpenses, onExpenseChange]);
 
+  // ESC closes the delete confirmation modal (but not while a delete is in
+  // flight — we don't want a stray keypress to abandon a half-finished op).
+  useEffect(() => {
+    if (!confirmDeleteId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !deleting) setConfirmDeleteId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmDeleteId, deleting]);
+
   // Auto-categorize when title changes
   const handleTitleChange = (title: string) => {
     setForm((f) => ({
@@ -505,6 +516,9 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-expense-heading"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -515,7 +529,7 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                   <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center flex-shrink-0">
                     <Trash2 className="w-5 h-5 text-rose-400" />
                   </div>
-                  <h3 className="font-display font-bold text-lg">Delete expense?</h3>
+                  <h3 id="delete-expense-heading" className="font-display font-bold text-lg">Delete expense?</h3>
                 </div>
                 <p className="text-sm text-white/60">
                   This will remove the expense for everyone in the trip and recalculate balances. This can&apos;t be undone.
@@ -525,6 +539,7 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
                 <button
                   onClick={() => setConfirmDeleteId(null)}
                   disabled={deleting}
+                  autoFocus
                   className="btn-secondary flex-1"
                 >
                   Cancel
