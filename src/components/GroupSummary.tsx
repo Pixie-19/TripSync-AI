@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
 import { Users, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { formatCurrency, calculateSettlements } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 interface MemberSummary {
@@ -33,7 +32,10 @@ export default function GroupSummary({ tripId, members }: Props) {
       .select("*")
       .eq("trip_id", tripId);
 
-    if (!expenses) { setLoading(false); return; }
+    if (!expenses) {
+      setLoading(false);
+      return;
+    }
 
     const paid: Record<string, number> = {};
     const share: Record<string, number> = {};
@@ -66,7 +68,6 @@ export default function GroupSummary({ tripId, members }: Props) {
       };
     });
 
-    // Sort: biggest creditors first
     setSummaries(result.sort((a, b) => b.netBalance - a.netBalance));
     setLoading(false);
   }, [tripId, members]);
@@ -78,68 +79,70 @@ export default function GroupSummary({ tripId, members }: Props) {
   if (loading) return null;
   if (summaries.length === 0) return null;
 
+  const maxAbs = Math.max(...summaries.map((s) => Math.abs(s.netBalance)), 1);
+
   return (
-    <div className="glass-card p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <Users className="w-5 h-5 text-brand-400" />
-        <h4 className="font-display font-semibold text-lg">Group Summary</h4>
+    <section>
+      <div className="flex items-center gap-2 mb-4">
+        <Users className="w-4 h-4 text-accent" strokeWidth={1.75} />
+        <span className="eyebrow">Group ledger</span>
       </div>
 
-      <div className="space-y-3">
-        {summaries.map((m, i) => {
+      <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)]">
+        {summaries.map((m) => {
           const isPositive = m.netBalance >= 0;
+          const widthPct = maxAbs > 0 ? (Math.abs(m.netBalance) / maxAbs) * 100 : 0;
           return (
-            <motion.div
+            <li
               key={m.userId}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/4 transition-colors group"
+              className="bg-elevated px-4 py-3 flex items-center gap-3 group cursor-pointer hover:bg-overlay transition-colors"
+              onClick={() => router.push(`/profile/${m.userId}`)}
             >
-              {/* Avatar */}
               {m.avatarUrl ? (
-                <img src={m.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-white/10 flex-shrink-0" />
+                <img src={m.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                <div className="avatar w-9 h-9 text-sm flex-shrink-0">
                   {m.name[0]?.toUpperCase()}
                 </div>
               )}
 
-              {/* Name + bars */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm truncate">{m.name}</span>
-                  <button
-                    onClick={() => router.push(`/profile/${m.userId}`)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:text-brand-400"
-                    aria-label={`View ${m.name} profile`}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
+                  <span className="text-sm text-ink truncate">{m.name}</span>
+                  <ExternalLink className="w-3 h-3 text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="flex items-center gap-3 text-xs text-white/40 mt-0.5 flex-wrap">
-                  <span>Paid {formatCurrency(m.totalPaid)}</span>
-                  <span>Share {formatCurrency(m.totalShare)}</span>
+                <div className="flex items-center gap-3 text-[11px] text-ink-muted mt-0.5">
+                  <span>Paid <span className="tnum text-ink-secondary">{formatCurrency(m.totalPaid)}</span></span>
+                  <span>Share <span className="tnum text-ink-secondary">{formatCurrency(m.totalShare)}</span></span>
+                </div>
+                {/* Bar */}
+                <div className="mt-2 h-0.5 w-full rounded-full bg-tint relative overflow-hidden">
+                  <div
+                    className={`absolute top-0 bottom-0 ${isPositive ? "left-1/2 bg-success" : "right-1/2 bg-danger"}`}
+                    style={{ width: `${widthPct / 2}%` }}
+                  />
                 </div>
               </div>
 
-              {/* Net Balance Badge */}
-              <div className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold flex-shrink-0 ${
-                isPositive
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-                  : "bg-rose-500/15 text-rose-400 border border-rose-500/20"
-              }`}>
-                {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                {isPositive ? "+" : ""}{formatCurrency(m.netBalance)}
+              <div
+                className={`flex items-center gap-1 numeric-display tnum text-sm flex-shrink-0 ${isPositive ? "text-success" : "text-danger"}`}
+              >
+                {isPositive ? (
+                  <TrendingUp className="w-3 h-3" strokeWidth={1.75} />
+                ) : (
+                  <TrendingDown className="w-3 h-3" strokeWidth={1.75} />
+                )}
+                {isPositive ? "+" : ""}
+                {formatCurrency(m.netBalance)}
               </div>
-            </motion.div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      <div className="mt-4 pt-4 border-t border-white/8 text-xs text-white/30 text-center">
-        Green = gets money back · Red = owes money · Click name to view profile
-      </div>
-    </div>
+      <p className="text-[11px] text-ink-faint text-center mt-3">
+        Click a name to view their public profile.
+      </p>
+    </section>
   );
 }

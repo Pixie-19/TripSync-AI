@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Smartphone, X, Zap, CheckCircle, Edit2, AlertCircle,
-  ArrowRight, Info, ChevronDown, ChevronUp
+  Info, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { parseSMSTransaction, type ParsedTransaction } from "@/lib/smsParser";
-import { getCategoryIcon, getCategoryColor } from "@/lib/utils";
+import { getCategoryIcon } from "@/lib/utils";
 
 const CATEGORY_OPTIONS = ["food", "transport", "stay", "activities", "shopping", "other"] as const;
 
@@ -79,176 +78,169 @@ export default function AutoDetectExpense({ onExpenseDetected }: Props) {
   };
 
   return (
-    <div className="mb-4">
+    <div className="relative">
+      {/* Saffron rule above */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="h-px flex-1 bg-[color:var(--highlight)] opacity-40" />
+        <span className="eyebrow text-highlight">Auto-detect</span>
+        <span className="h-px flex-1 bg-[color:var(--highlight)] opacity-40" />
+      </div>
+
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-brand-500/20 bg-brand-500/5 text-brand-400 hover:bg-brand-500/10 transition-colors text-sm font-medium"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-subtle bg-highlight-soft hover:bg-highlight-soft-strong text-ink transition-colors text-sm"
         id="auto-detect-toggle"
       >
-        <span className="flex items-center gap-2">
-          <Smartphone className="w-4 h-4" />
-          Auto-Detect from UPI / SMS
-          <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300">Simulated</span>
+        <span className="flex items-center gap-2.5 text-left">
+          <Smartphone className="w-4 h-4 text-highlight" strokeWidth={1.75} />
+          <span>
+            <span className="font-medium">Auto-detect from UPI / SMS</span>
+            <span className="ml-2 badge badge--saffron">Simulated</span>
+          </span>
         </span>
-        {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {open ? <ChevronUp className="w-4 h-4 text-ink-muted" /> : <ChevronDown className="w-4 h-4 text-ink-muted" />}
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
+      {open && (
+        <div className="mt-3 surface-card p-5 space-y-4">
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-md bg-info-soft text-xs text-ink-secondary">
+            <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-info" />
+            <span>
+              Simulates the auto-detection used in mobile environments. Paste a bank SMS or UPI notification to auto-fill expense details.
+            </span>
+          </div>
+
+          <div>
+            <p className="eyebrow mb-2">Try a sample</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SAMPLE_SMS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSample(s)}
+                  className="text-xs px-2.5 py-1 rounded-md border border-default text-ink-secondary hover:border-strong hover:text-ink transition-colors"
+                >
+                  Sample {i + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1.5 block" htmlFor="sms-input">
+              Bank SMS or UPI notification
+            </label>
+            <textarea
+              id="sms-input"
+              value={smsText}
+              onChange={(e) => setSmsText(e.target.value)}
+              placeholder="Rs.500 debited from your account to Zomato via UPI. Ref: 123456"
+              rows={3}
+              className="textarea-field text-sm"
+            />
+          </div>
+
+          <button
+            onClick={handleParse}
+            disabled={!smsText.trim()}
+            className="btn-primary w-full"
+            id="parse-sms-btn"
           >
-            <div className="mt-3 glass-card p-5 space-y-4">
-              {/* Info Banner */}
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-brand-500/8 border border-brand-500/20 text-xs text-brand-300">
-                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>
-                  This simulates automatic UPI detection used in mobile environments.
-                  Paste a bank SMS or UPI notification to auto-fill expense details.
+            <Zap className="w-3.5 h-3.5" />
+            Detect transaction
+          </button>
+
+          {parseError && (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-md border border-danger bg-danger-soft text-danger text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              {parseError}
+            </div>
+          )}
+
+          {parsed && (
+            <div className="rounded-lg border border-success bg-success-soft overflow-hidden">
+              <div className="px-4 py-3 border-b border-subtle flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-success" strokeWidth={1.75} />
+                <span className="text-sm font-medium text-ink">Transaction detected</span>
+                <span className={`ml-auto badge ${parsed.type === "debit" ? "badge--danger" : "badge--success"}`}>
+                  {parsed.type === "debit" ? "Debit" : "Credit"}
                 </span>
               </div>
 
-              {/* Sample SMS Buttons */}
-              <div>
-                <p className="text-xs text-white/40 mb-2">Try a sample:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SAMPLE_SMS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSample(s)}
-                      className="text-xs px-2.5 py-1 rounded-full border border-white/10 text-white/50 hover:border-brand-500/40 hover:text-brand-400 transition-colors"
-                    >
-                      Sample {i + 1}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* SMS Input */}
-              <div>
-                <label className="block text-xs text-white/50 mb-1.5" htmlFor="sms-input">
-                  Paste your bank SMS or UPI notification:
-                </label>
-                <textarea
-                  id="sms-input"
-                  value={smsText}
-                  onChange={(e) => setSmsText(e.target.value)}
-                  placeholder="Rs.500 debited from your account to Zomato via UPI. Ref: 123456"
-                  rows={3}
-                  className="input-field resize-none text-sm"
-                />
-              </div>
-
-              <button
-                onClick={handleParse}
-                disabled={!smsText.trim()}
-                className="btn-primary w-full justify-center py-2.5 text-sm"
-                id="parse-sms-btn"
-              >
-                <Zap className="w-4 h-4" />
-                Detect Transaction
-              </button>
-
-              {/* Parse Error */}
-              {parseError && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {parseError}
-                </div>
-              )}
-
-              {/* Parsed Result Preview */}
-              <AnimatePresence>
-                {parsed && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden"
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />
-                        <span className="text-emerald-400 text-sm font-semibold">Transaction Detected</span>
-                        <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-semibold ${parsed.type === "debit" ? "bg-rose-500/20 text-rose-400" : "bg-emerald-500/20 text-emerald-400"}`}>
-                          {parsed.type === "debit" ? "Debit" : "Credit"}
-                        </span>
+              <div className="px-4 py-4">
+                {editMode ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1 block" htmlFor="edit-title">Title</label>
+                      <input id="edit-title" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} className="input-field text-sm" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1 block" htmlFor="edit-amount">Amount (INR)</label>
+                        <input id="edit-amount" type="number" value={editedAmount} onChange={(e) => setEditedAmount(e.target.value)} className="input-field text-sm tnum" />
                       </div>
-
-                      {editMode ? (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs text-white/40 mb-1 block" htmlFor="edit-title">Title</label>
-                            <input id="edit-title" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} className="input-field text-sm" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-xs text-white/40 mb-1 block" htmlFor="edit-amount">Amount (INR)</label>
-                              <input id="edit-amount" type="number" value={editedAmount} onChange={(e) => setEditedAmount(e.target.value)} className="input-field text-sm" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-white/40 mb-1 block" htmlFor="edit-category">Category</label>
-                              <select id="edit-category" value={editedCategory} onChange={(e) => setEditedCategory(e.target.value)} className="select-field text-sm">
-                                {CATEGORY_OPTIONS.map((c) => (
-                                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div>
-                            <div className="font-display font-bold text-xl text-white">
-                              {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(parsed.amount)}
-                            </div>
-                            <div className="text-white/40 text-xs">Amount</div>
-                          </div>
-                          <div>
-                            <div className="font-semibold text-sm text-white truncate">{parsed.merchant}</div>
-                            <div className="text-white/40 text-xs">Merchant</div>
-                          </div>
-                          <div>
-                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${getCategoryColor(parsed.suggestedCategory)}`}>
-                              {(() => {
-                                const Icon = getCategoryIcon(parsed.suggestedCategory);
-                                return <Icon className="w-3.5 h-3.5" />;
-                              })()}
-                              {parsed.suggestedCategory.charAt(0).toUpperCase() + parsed.suggestedCategory.slice(1)}
-                            </div>
-                            <div className="text-white/40 text-xs mt-1">Category</div>
-                          </div>
-                        </div>
-                      )}
+                      <div>
+                        <label className="text-xs uppercase tracking-wider font-semibold text-ink-subtle mb-1 block" htmlFor="edit-category">Category</label>
+                        <select id="edit-category" value={editedCategory} onChange={(e) => setEditedCategory(e.target.value)} className="select-field text-sm capitalize">
+                          {CATEGORY_OPTIONS.map((c) => (
+                            <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-
-                    <div className="flex gap-2 px-4 pb-4">
-                      <button
-                        onClick={() => setEditMode((v) => !v)}
-                        className="btn-secondary flex-1 justify-center text-sm py-2"
-                        id="edit-detected-btn"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        {editMode ? "Preview" : "Edit"}
-                      </button>
-                      <button
-                        onClick={handleAddExpense}
-                        className="btn-primary flex-1 justify-center text-sm py-2"
-                        id="add-detected-expense-btn"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Add Expense
-                      </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="eyebrow mb-1">Amount</div>
+                      <div className="numeric-display tnum text-lg text-ink">
+                        {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(parsed.amount)}
+                      </div>
                     </div>
-                  </motion.div>
+                    <div>
+                      <div className="eyebrow mb-1">Merchant</div>
+                      <div className="text-sm font-medium text-ink truncate">{parsed.merchant}</div>
+                    </div>
+                    <div>
+                      <div className="eyebrow mb-1">Category</div>
+                      <div className="inline-flex items-center gap-1.5 text-sm text-ink capitalize">
+                        {(() => {
+                          const Icon = getCategoryIcon(parsed.suggestedCategory);
+                          return <Icon className="w-3.5 h-3.5 text-ink-muted" strokeWidth={1.75} />;
+                        })()}
+                        {parsed.suggestedCategory}
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
+
+              <div className="flex gap-2 px-4 pb-4">
+                <button
+                  onClick={() => setEditMode((v) => !v)}
+                  className="btn-secondary flex-1 text-sm"
+                  id="edit-detected-btn"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  {editMode ? "Preview" : "Edit"}
+                </button>
+                <button
+                  onClick={handleAddExpense}
+                  className="btn-primary flex-1 text-sm"
+                  id="add-detected-expense-btn"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  Add expense
+                </button>
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+      )}
+
+      {/* Saffron rule below */}
+      <div className="flex items-center gap-3 mt-4">
+        <span className="h-px flex-1 bg-[color:var(--highlight)] opacity-40" />
+      </div>
     </div>
   );
 }

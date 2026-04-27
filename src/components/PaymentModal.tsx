@@ -1,6 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Smartphone, CreditCard, Wallet, Loader2, CheckCircle, IndianRupee } from "lucide-react";
+import { X, Smartphone, CreditCard, Wallet, Loader2, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -13,6 +14,14 @@ interface PaymentModalProps {
   onConfirm: () => Promise<void>;
 }
 
+const METHODS = [
+  { id: "UPI", label: "UPI", caption: "Google Pay, PhonePe, Paytm", icon: Smartphone },
+  { id: "Card", label: "Credit / Debit", caption: "Visa, Mastercard, RuPay", icon: CreditCard },
+  { id: "Wallet", label: "Wallet", caption: "Amazon Pay, MobiKwik", icon: Wallet },
+] as const;
+
+type Method = typeof METHODS[number]["id"];
+
 export default function PaymentModal({
   isOpen,
   onClose,
@@ -21,180 +30,151 @@ export default function PaymentModal({
   currency = "INR",
   onConfirm,
 }: PaymentModalProps) {
-  const [method, setMethod] = useState<"UPI" | "Card" | "Wallet">("UPI");
-  const [processing, setProcessing] = useState(false);
+  const [method, setMethod] = useState<Method>("UPI");
   const [step, setStep] = useState<"select" | "upi-anim" | "processing" | "success">("select");
 
-  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setMethod("UPI");
-      setProcessing(false);
       setStep("select");
     }
   }, [isOpen]);
 
+  // ESC closes when not processing
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && step === "select") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, step, onClose]);
+
   const handlePay = async () => {
-    setProcessing(true);
-    
     if (method === "UPI") {
       setStep("upi-anim");
-      await new Promise((res) => setTimeout(res, 1500)); // Simulate UPI opening
+      await new Promise((res) => setTimeout(res, 1200));
     }
-    
     setStep("processing");
-    await new Promise((res) => setTimeout(res, 2000)); // Simulate network request
-
+    await new Promise((res) => setTimeout(res, 1500));
     try {
       await onConfirm();
       setStep("success");
-      toast.success("Payment successful 🎉");
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } catch (error) {
+      toast.success("Payment successful");
+      setTimeout(() => onClose(), 1400);
+    } catch {
       toast.error("Payment failed. Try again.");
       setStep("select");
-      setProcessing(false);
     }
   };
 
   if (!isOpen) return null;
+  const processing = step !== "select";
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={!processing ? onClose : undefined}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 w-full sm:max-w-md bg-dark-800 border border-white/10 sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div onClick={!processing ? onClose : undefined} className="absolute inset-0 modal-backdrop" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="payment-heading"
+        className="relative modal-panel w-full max-w-md overflow-hidden"
+      >
+        <header className="flex items-center justify-between px-6 py-4 border-b border-subtle">
+          <h3
+            id="payment-heading"
+            className="font-display text-2xl text-ink"
+            style={{ fontWeight: 500 }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <h3 className="font-semibold text-lg">Make Payment</h3>
-              {!processing && (
-                <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                  <X className="w-5 h-5 text-white/50" />
-                </button>
-              )}
-            </div>
+            Make payment
+          </h3>
+          {!processing && (
+            <button onClick={onClose} className="btn-icon" aria-label="Close">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </header>
 
-            <div className="p-6">
-              {/* Receiver Info */}
-              <div className="flex flex-col items-center justify-center mb-8">
-                <div className="text-sm text-white/50 mb-2">Paying {receiverName}</div>
-                <div className="text-4xl font-display font-bold text-white mb-1">
-                  {formatCurrency(amount, currency)}
-                </div>
+        <div className="px-6 py-6">
+          {/* Amount + receiver */}
+          <div className="text-center mb-6">
+            <div className="eyebrow mb-2">Paying {receiverName}</div>
+            <div
+              className="numeric-display tnum text-4xl text-ink"
+              style={{ fontVariationSettings: "'opsz' 144" }}
+            >
+              {formatCurrency(amount, currency)}
+            </div>
+          </div>
+
+          {step === "select" && (
+            <>
+              <ul className="rounded-lg border border-subtle overflow-hidden divide-y divide-[color:var(--border-subtle)] mb-6">
+                {METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const active = method === m.id;
+                  return (
+                    <li key={m.id}>
+                      <button
+                        onClick={() => setMethod(m.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${active ? "bg-accent-soft" : "bg-elevated hover:bg-overlay"}`}
+                      >
+                        <span
+                          className={`w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 ${active ? "bg-accent text-[color:var(--accent-on)]" : "bg-tint text-ink-muted"}`}
+                        >
+                          <Icon className="w-4 h-4" strokeWidth={1.75} />
+                        </span>
+                        <div className="flex-1">
+                          <div className="text-sm text-ink font-medium">{m.label}</div>
+                          <div className="text-[11px] text-ink-muted">{m.caption}</div>
+                        </div>
+                        <span
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${active ? "bg-accent border-accent" : "border-strong"}`}
+                          aria-hidden
+                        >
+                          {active && <span className="w-1.5 h-1.5 bg-[color:var(--accent-on)] rounded-full" />}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <button onClick={handlePay} className="btn-primary btn-lg w-full">
+                Proceed to pay
+              </button>
+            </>
+          )}
+
+          {step === "upi-anim" && (
+            <div className="flex flex-col items-center justify-center py-10 gap-4">
+              <div className="w-16 h-16 rounded-full bg-accent-soft border border-accent-soft flex items-center justify-center">
+                <Smartphone className="w-7 h-7 text-accent" strokeWidth={1.5} />
               </div>
-
-              {step === "select" && (
-                <div className="space-y-4">
-                  <div className="text-sm font-medium text-white/70 mb-2">Select Payment Method</div>
-                  
-                  <button
-                    onClick={() => setMethod("UPI")}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                      method === "UPI" ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${method === "UPI" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/50"}`}>
-                      <Smartphone className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold">UPI</div>
-                      <div className="text-xs text-white/40">Google Pay, PhonePe, Paytm</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setMethod("Card")}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                      method === "Card" ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${method === "Card" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/50"}`}>
-                      <CreditCard className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold">Credit/Debit Card</div>
-                      <div className="text-xs text-white/40">Visa, Mastercard, RuPay</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setMethod("Wallet")}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                      method === "Wallet" ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${method === "Wallet" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/50"}`}>
-                      <Wallet className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold">Wallet</div>
-                      <div className="text-xs text-white/40">Amazon Pay, MobiKwik</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={handlePay}
-                    disabled={processing}
-                    className="w-full mt-6 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-all disabled:opacity-50"
-                  >
-                    Proceed to Pay
-                  </button>
-                </div>
-              )}
-
-              {step === "upi-anim" && (
-                <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center"
-                  >
-                    <Smartphone className="w-8 h-8 text-emerald-400" />
-                  </motion.div>
-                  <div className="text-lg font-medium">Opening UPI App...</div>
-                  <div className="text-sm text-white/50">Please do not close this window</div>
-                  <div className="text-xs text-white/30 font-mono mt-4">fake_upi_id@bank</div>
-                </div>
-              )}
-
-              {step === "processing" && (
-                <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                  <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
-                  <div className="text-lg font-medium">Processing Payment...</div>
-                  <div className="text-sm text-white/50">Securely completing transaction</div>
-                </div>
-              )}
-
-              {step === "success" && (
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex flex-col items-center justify-center py-8 space-y-4"
-                >
-                  <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-10 h-10 text-emerald-500" />
-                  </div>
-                  <div className="text-xl font-bold text-emerald-400">Payment Successful!</div>
-                </motion.div>
-              )}
+              <div className="text-base text-ink">Opening UPI app…</div>
+              <div className="text-xs text-ink-muted">Don&apos;t close this window</div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          )}
+
+          {step === "processing" && (
+            <div className="flex flex-col items-center justify-center py-10 gap-4">
+              <Loader2 className="w-9 h-9 text-accent animate-spin" />
+              <div className="text-base text-ink">Processing payment…</div>
+              <div className="text-xs text-ink-muted">Securely completing transaction</div>
+            </div>
+          )}
+
+          {step === "success" && (
+            <div className="flex flex-col items-center justify-center py-10 gap-4">
+              <div className="w-16 h-16 rounded-full bg-success-soft border border-success flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-success" strokeWidth={1.5} />
+              </div>
+              <div className="font-display text-2xl text-success" style={{ fontWeight: 500 }}>
+                Payment successful
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
