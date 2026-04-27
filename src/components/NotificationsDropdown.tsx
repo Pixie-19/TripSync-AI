@@ -14,13 +14,20 @@ export default function NotificationsDropdown() {
 
   useEffect(() => {
     if (!user?.id) return;
+
+    let isUnmounted = false;
     fetchNotifications();
 
     const channel = supabase
       .channel(`notifications-${user.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
-        setNotifications(prev => [payload.new, ...prev]);
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (isUnmounted) return;
+          setNotifications(prev => [payload.new, ...prev]);
+        },
+      )
       .subscribe();
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -30,7 +37,8 @@ export default function NotificationsDropdown() {
     };
     document.addEventListener("mousedown", handleClickOutside);
 
-    return () => { 
+    return () => {
+      isUnmounted = true;
       supabase.removeChannel(channel);
       document.removeEventListener("mousedown", handleClickOutside);
     };

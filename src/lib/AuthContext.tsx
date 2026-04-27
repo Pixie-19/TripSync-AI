@@ -4,6 +4,11 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { supabase } from "@/lib/supabase";
 import { auth, onAuthStateChanged } from "@/lib/firebase";
 
+// Auth is Firebase-only (Google sign-in). Supabase is still used as a
+// database client (anon key), but no longer for authentication. The
+// `user` shape here intentionally mirrors the Supabase user shape so
+// downstream components that read user.user_metadata, user.email,
+// user.id continue to work unchanged.
 interface AuthContextType {
   user: any | null;
   loading: boolean;
@@ -16,56 +21,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // MODULE 3: Session Persistence
-    
-    // ── 1. Supabase Session ──
-    const initSupabase = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        setLoading(false);
-        document.cookie = `sb_auth=${session.access_token}; path=/; max-age=86400; SameSite=Lax`;
-      }
-    };
-    initSupabase();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        setLoading(false);
-        document.cookie = `sb_auth=${session.access_token}; path=/; max-age=86400; SameSite=Lax`;
-        
-        await supabase.from("users").upsert({
-          id: session.user.id,
-          email: session.user.email ?? "",
-          full_name: session.user.user_metadata?.full_name ?? null,
-          avatar_url: session.user.user_metadata?.avatar_url ?? null,
-          updated_at: new Date().toISOString(),
-        });
-      } else if (event === 'SIGNED_OUT') {
-        document.cookie = "sb_auth=; path=/; max-age=0";
-        // Only clear user if Firebase is also signed out
-        if (!auth.currentUser) setUser(null);
-      }
-    });
-
-    // ── 2. Firebase Session (Google Login fallback) ──
     const unsubFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const unifiedUser = {
+        setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email,
           user_metadata: {
             full_name: firebaseUser.displayName,
             avatar_url: firebaseUser.photoURL,
-          }
-        };
-        setUser(unifiedUser);
+          },
+        });
         setLoading(false);
-        
-        // Set cookie for middleware
+
+        // ts_auth cookie is read by middleware.ts to gate protected routes.
         document.cookie = `ts_auth=${firebaseUser.uid}; path=/; max-age=86400; SameSite=Lax`;
 
+        // Mirror the Firebase user into public.users so trip / expense FKs
+        // (which reference public.users(id) as TEXT) resolve. If a row with
+        // this email already exists from the legacy email/password era, this
+        // upsert will fail silently on the email UNIQUE constraint — those
+        // accounts must keep using their old credentials path, which no
+        // longer exists. By design per the user's directive: keep old data,
+        // do not auto-migrate.
         await supabase.from("users").upsert({
           id: firebaseUser.uid,
           email: firebaseUser.email ?? "",
@@ -75,15 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       } else {
         document.cookie = "ts_auth=; path=/; max-age=0";
-        // Only clear user if Supabase is also signed out
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) setUser(null);
+        setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
-      subscription.unsubscribe();
       unsubFirebase();
     };
   }, []);

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
+import { signOutEverywhere } from "@/lib/authActions";
 import { formatCurrency, generateInviteCode, getDaysCount } from "@/lib/utils";
 import { format } from "date-fns";
 import CreateTripModal from "@/components/CreateTripModal";
@@ -67,7 +68,7 @@ export default function DashboardPage() {
   }, [user, authLoading, router, fetchTrips]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOutEverywhere();
     router.replace("/auth");
   };
 

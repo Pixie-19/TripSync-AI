@@ -9,8 +9,9 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   if (!isProtected) return NextResponse.next();
 
-  // Logic: Check session from Supabase cookie set by AuthContext
-  const authCookie = request.cookies.get("sb_auth") || request.cookies.get("ts_auth");
+  // ts_auth is set by AuthContext on Firebase login. Auth is Google-only
+  // since the email/password path was removed; a single cookie source.
+  const authCookie = request.cookies.get("ts_auth");
 
   if (!authCookie?.value) {
     const loginUrl = new URL("/auth", request.url);
