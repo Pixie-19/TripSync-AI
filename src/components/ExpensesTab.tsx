@@ -178,8 +178,9 @@ export default function ExpensesTab({ tripId, members, user, onExpenseChange }: 
       onExpenseChange();
       toast.success("Expense deleted");
       setConfirmDeleteId(null);
-    } catch {
-      toast.error("Failed to delete expense");
+    } catch (err: any) {
+      console.error("performDelete failed", { expenseId: confirmDeleteId, err });
+      toast.error(`Failed to delete expense: ${err?.message ?? err}`);
     } finally {
       setDeleting(false);
     }
