@@ -10,6 +10,8 @@ import {
   Loader2, Camera, Calendar, TrendingUp, ShieldCheck
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { auth } from "@/lib/firebase";
+import { updateProfile } from "firebase/auth";
 import { useAuth } from "@/lib/AuthContext";
 import { signOutEverywhere } from "@/lib/authActions";
 import { formatCurrency } from "@/lib/utils";
@@ -61,8 +63,13 @@ export default function ProfilePage() {
     if (!user) return;
     setSaving(true);
     try {
+      // Firebase is the source of truth — AuthContext re-reads displayName on
+      // next load and re-upserts it to the DB, otherwise the upsert clobbers
+      // any DB-only update with the stale Google displayName.
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName });
+      }
       await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
-      await supabase.auth.updateUser({ data: { full_name: displayName } });
       toast.success("Profile updated!");
       setEditing(false);
     } catch {
