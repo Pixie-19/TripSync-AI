@@ -72,7 +72,8 @@ export default function ProfilePage() {
       await supabase.from("users").update({ full_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
       toast.success("Profile updated!");
       setEditing(false);
-    } catch {
+    } catch (e) {
+      console.error("profile handleSave failed", { userId: user.id, e });
       toast.error("Failed to update profile");
     } finally {
       setSaving(false);
